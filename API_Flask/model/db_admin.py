@@ -1,1 +1,6 @@
-User =  [{"username": "marco", "password": "1234"}]
+UserTest =  [
+    {
+        "username": "test", #Username do usuário de teste 
+        "password": "test"  #Password do Usuário de teste
+    }
+]
