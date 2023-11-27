@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from hashlib import sha256
 from model.connection import db
-from model.db_admin import UserTest
+#from model.db_admin import UserTest ##descomente está linha para usar o usuário de teste
 
 MY_APP = Blueprint('MY_APP', __name__)#link do controller com a main
 
@@ -22,8 +22,7 @@ def listar():
                 'nome': aluno[1],
                 'cpf': aluno[2],
                 'email': aluno[3],
-                'telefone': aluno[4],
-                'instrutor': aluno[5]
+                'telefone': aluno[4]
             }
             lista_alunos.append(aluno_dict)
         return jsonify(mensagem='lista de alunos', dados=lista_alunos), 200
@@ -61,9 +60,9 @@ def inserir():
     try:
         cursor = db.cursor()
         aluno = request.json
-        if 'nome' not in aluno or 'cpf' not in aluno or 'email' not in aluno or 'telefone' not in aluno or 'fk_instrutor_Cod_instrutor' not in aluno:
-            return jsonify({'message': 'Campos obrigatórios: nome, cpf, email e telefone, fk_instrutor_Cod_instrutor'}), 400
-        cursor.execute('INSERT INTO aluno(nome, cpf, email, telefone, fk_instrutor_Cod_instrutor) VALUES(%s, %s, %s, %s, %s)', (aluno["nome"], aluno["cpf"], aluno["email"], aluno["telefone"], aluno["fk_instrutor_Cod_instrutor"]))
+        if 'nome' not in aluno or 'cpf' not in aluno or 'email' not in aluno or 'telefone' not in aluno or 'Cod_instrutor' not in aluno:
+            return jsonify({'message': 'Campos obrigatórios: nome, cpf, email e telefone, Cod_instrutor'}), 400
+        cursor.execute('INSERT INTO aluno(nome, cpf, email, telefone, Cod_instrutor) VALUES(%s, %s, %s, %s, %s)', (aluno["nome"], aluno["cpf"], aluno["email"], aluno["telefone"], aluno["Cod_instrutor"]))
         db.commit() 
         return jsonify({'message': 'Aluno inserido com sucesso'}), 201
     except Exception as err:
@@ -99,11 +98,11 @@ def treino():
     try:
         treino = request.json
         cursor = db.cursor()
-        if 'tipo_de_treino'  not in treino or 'exercios'  not in treino or 'serie'  not in treino or 'repeticoes'  not in treino or 'Cod_instrutor'  not in treino:
-            return jsonify(message='Campos obrigatórios: tipo_de_treino, exercicios, serie, repeticoes e Cod_instrutor'), 400
-        cursor.execute('INSERT INTO treino(tipo_de_treino, exercios, serie, repeticoes, Cod_instrutor) VALUES(%s, %s, %s, %s, %s)', (treino["tipo_de_treino"], treino["exercios"], treino["serie"], treino["repeticoes"], treino["Cod_instrutor"])) 
+        if 'tipo_treino'  not in treino or 'exercicio'  not in treino or 'serie'  not in treino or 'repeticao' not in treino or 'Cod_aluno' not in treino or 'Cod_instrutor' not in treino:
+            return jsonify(message='Campos obrigatórios: tipo_treino, exercicio, serie, repeticoes, Cod_aluno e Cod_instrutor'), 400
+        cursor.execute('INSERT INTO treino(tipo_treino, exercicio, serie, repeticao, Cod_aluno, Cod_instrutor) VALUES(%s, %s, %s, %s, %s, %s)', (treino["tipo_treino"], treino["exercicio"], treino["serie"], treino["repeticao"], treino["Cod_aluno"], treino["Cod_instrutor"])) 
         db.commit()
-        return jsonify({'message': 'instrutor inserido com sucesso'}), 201
+        return jsonify({'message': 'treino inserido com sucesso'}), 201
     except Exception as err:
         return jsonify({'message': str(err)}), 500
     finally:
@@ -127,8 +126,7 @@ def buscar(id):
                 'nome': dados[1],
                 'cpf': dados[2],
                 'email': dados[3],
-                'telefone': dados[4],
-                'instrutor': dados[5]
+                'telefone': dados[4]
             }
             return jsonify(dados)
         return jsonify(message='Aluno não encontrado'), 404
@@ -140,14 +138,14 @@ def buscar(id):
 
 #rota "/aluno/id" metodo GET faz uma busca no sistema pelo id do aluno   
 @MY_APP.route('/alunoInstrutor/<int:id>', methods=['GET'])
-@jwt_required()
+# @jwt_required()
 def buscarAlunoInstrutor(id):
     try:
         cursor = db.cursor()
         if not id:
             return jsonify(message='Campo id é obrigatórios'), 400
 
-        cursor.execute('SELECT aluno.nome AS NomeAluno, aluno.cpf AS CpfAluno, aluno.email AS EmailAluno, aluno.telefone AS TelefoneAluno, instrutor.nome AS NomeInstrutor, instrutor.Num_Confef AS RegistroInstrutor, instrutor.telefone AS TelefoneInstrutor, instrutor.funcao AS FuncaoInstrutor FROM aluno JOIN instrutor ON aluno.fk_instrutor_Cod_instrutor = instrutor.Cod_instrutor WHERE aluno.Cod_aluno = %s', (id,))
+        cursor.execute('SELECT aluno.nome AS NomeAluno, aluno.cpf AS CpfAluno, aluno.email AS EmailAluno, aluno.telefone AS TelefoneAluno, instrutor.nome AS NomeInstrutor, instrutor.funcao AS FuncaoInstrutor FROM aluno JOIN instrutor ON aluno.Cod_instrutor = instrutor.Cod_instrutor WHERE aluno.Cod_aluno = %s', (id,))
         aluno = cursor.fetchall()
         if aluno:
             for dados in aluno:
@@ -156,12 +154,42 @@ def buscarAlunoInstrutor(id):
                 'cpf aluno': dados[1],
                 'email aluno': dados[2],
                 'telefone aluno': dados[3],
-                'nome instrutor': dados[4],
-                'Num_Confef instrutor': dados[5],
-                'telefone instrutor': dados[6],
-                'função instrutor': dados[7]
+                'intrutor': {
+                    'nome instrutor': dados[4],
+                    'função instrutor': dados[5]
+                }
             }
             return jsonify(mesagem='relação de aluno e instrutor', lista=dados)
+        return jsonify(message='Aluno não encontrado'), 404
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
+    finally:
+        cursor.close()
+
+
+@MY_APP.route('/treinoaluno/<int:id>', methods=['GET'])
+#@jwt_required()
+def treinoaluno(id):
+    try:
+        cursor = db.cursor()
+        if not id:
+            return jsonify(message='Campo id é obrigatórios'), 400
+
+        cursor.execute('SELECT aluno.nome AS NomeAluno, instrutor.nome AS NomeInstrutor, treino.tipo_treino, treino.exercicio, treino.serie, treino.repeticao FROM treino JOIN aluno ON treino.Cod_aluno = aluno.Cod_aluno JOIN instrutor ON treino.Cod_instrutor = instrutor.Cod_instrutor WHERE aluno.Cod_aluno = %s', (id,))
+        aluno = cursor.fetchall()
+        if aluno:
+            for dados in aluno:
+                dados = {
+                'nome aluno': dados[0],
+                'nome instrutor': dados[1],
+                'treino': {
+                    'tipo_treino': dados[2],
+                    'exercicio': dados[3],
+                    'serie': dados[4],
+                    'repeticao': dados[5],
+                }
+            }
+            return jsonify(mesagem='treino aluno', lista=dados)
         return jsonify(message='Aluno não encontrado'), 404
     except Exception as err:
         return jsonify({'message': str(err)}), 500
@@ -177,8 +205,8 @@ def atualizar(id):
         nome = request.json.get('nome')  
         email = request.json.get('email')
         telefone = request.json.get('telefone')
-        fk_instrutor_Cod_instrutor = request.json.get('fk_instrutor_Cod_instrutor')
-        if nome != nome or email != email or telefone != telefone or fk_instrutor_Cod_instrutor != fk_instrutor_Cod_instrutor:
+        Cod_instrutor = request.json.get('Cod_instrutor')
+        if nome != nome or email != email or telefone != telefone or Cod_instrutor != Cod_instrutor:
             return jsonify(message='Campo "nome", "e-mail" e "telefone" é obrigatório'), 400
         if not id:
             return jsonify(message='Campo "id" é obrigatório'), 400
@@ -192,7 +220,7 @@ def atualizar(id):
             cursor.execute('UPDATE aluno SET telefone = %s WHERE Cod_aluno = %s', (telefone, id))
             db.commit()
         if instrutor:
-            cursor.execute('UPDATE aluno SET fk_instrutor_Cod_instrutor = %s WHERE Cod_aluno = %s', (fk_instrutor_Cod_instrutor, id))
+            cursor.execute('UPDATE aluno SET Cod_instrutor = %s WHERE Cod_aluno = %s', (Cod_instrutor, id))
             db.commit()
         if cursor.rowcount > 0:
             return jsonify(message='Aluno atualizado com sucesso'), 200
