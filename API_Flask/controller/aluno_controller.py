@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from hashlib import sha256
-from model.connection import db
-#from model.db_admin import UserTest ##descomente está linha para usar o usuário de teste
+#from model.connection import conn ##conexão com o workbench 
+from model.db_postgres import conn ##conexão com o postgres 
+from model.db_admin import UserTest ##descomente está linha para usar o usuário de teste
 
 MY_APP = Blueprint('MY_APP', __name__)#link do controller com a main
 
@@ -12,7 +13,7 @@ MY_APP = Blueprint('MY_APP', __name__)#link do controller com a main
 @jwt_required()
 def listar():
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         cursor.execute('select * from aluno')
         tabela = cursor.fetchall()
         lista_alunos = []
@@ -37,15 +38,15 @@ def listar():
 @jwt_required()
 def admin():
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         adm = request.json
         if 'username' not in adm or 'password' not in adm:
             return jsonify(message='Campos obrigatórios: username e password'), 400        
         password = adm["password"]
         hash_senha = sha256(password.encode()).hexdigest()
         cursor.execute('INSERT INTO administrativo(username, password) VALUES(%s, %s)', (adm["username"], hash_senha))
-        cursor.execute(cursor)
-        db.commit() 
+        cursor.execute()
+        conn.commit() 
         return jsonify({'message': 'adm inserido com sucesso'}), 201
     except Exception as err:
         return jsonify({'message': str(err)}), 500
@@ -58,12 +59,12 @@ def admin():
 @jwt_required()
 def inserir():
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         aluno = request.json
         if 'nome' not in aluno or 'cpf' not in aluno or 'email' not in aluno or 'telefone' not in aluno or 'Cod_instrutor' not in aluno:
             return jsonify({'message': 'Campos obrigatórios: nome, cpf, email e telefone, Cod_instrutor'}), 400
         cursor.execute('INSERT INTO aluno(nome, cpf, email, telefone, Cod_instrutor) VALUES(%s, %s, %s, %s, %s)', (aluno["nome"], aluno["cpf"], aluno["email"], aluno["telefone"], aluno["Cod_instrutor"]))
-        db.commit() 
+        conn.commit() 
         return jsonify({'message': 'Aluno inserido com sucesso'}), 201
     except Exception as err:
         return jsonify({'message': str(err)}), 500
@@ -76,14 +77,14 @@ def inserir():
 @jwt_required()
 def instrutor():
     instrutor = request.json
-    cursor = db.cursor()
+    cursor = conn.cursor()
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         instrutor = request.json
         if 'nome' not in instrutor or 'Num_Confef' not in instrutor or 'telefone' not in instrutor or 'funcao' not in instrutor:
             return jsonify(message='Campos obrigatórios: nome, cpf, email e telefone'), 400
         cursor.execute('INSERT INTO instrutor(nome, Num_Confef, telefone, funcao) VALUES(%s, %s, %s, %s)', (instrutor["nome"], instrutor["Num_Confef"], instrutor["telefone"], instrutor["funcao"]))
-        db.commit() 
+        conn.commit() 
         return jsonify({'message': 'instrutor inserido com sucesso'}), 201
     except Exception as err:
         return jsonify({'message': str(err)}), 500
@@ -97,11 +98,11 @@ def instrutor():
 def treino():
     try:
         treino = request.json
-        cursor = db.cursor()
+        cursor = conn.cursor()
         if 'tipo_treino'  not in treino or 'exercicio'  not in treino or 'serie'  not in treino or 'repeticao' not in treino or 'Cod_aluno' not in treino or 'Cod_instrutor' not in treino:
             return jsonify(message='Campos obrigatórios: tipo_treino, exercicio, serie, repeticoes, Cod_aluno e Cod_instrutor'), 400
         cursor.execute('INSERT INTO treino(tipo_treino, exercicio, serie, repeticao, Cod_aluno, Cod_instrutor) VALUES(%s, %s, %s, %s, %s, %s)', (treino["tipo_treino"], treino["exercicio"], treino["serie"], treino["repeticao"], treino["Cod_aluno"], treino["Cod_instrutor"])) 
-        db.commit()
+        conn.commit()
         return jsonify({'message': 'treino inserido com sucesso'}), 201
     except Exception as err:
         return jsonify({'message': str(err)}), 500
@@ -113,7 +114,7 @@ def treino():
 @jwt_required()
 def buscar(id):
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         if not id:
             return jsonify(message='Campo id é obrigatórios'), 400
 
@@ -141,7 +142,7 @@ def buscar(id):
 # @jwt_required()
 def buscarAlunoInstrutor(id):
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         if not id:
             return jsonify(message='Campo id é obrigatórios'), 400
 
@@ -171,7 +172,7 @@ def buscarAlunoInstrutor(id):
 #@jwt_required()
 def treinoaluno(id):
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         if not id:
             return jsonify(message='Campo id é obrigatórios'), 400
 
@@ -201,7 +202,7 @@ def treinoaluno(id):
 @jwt_required()
 def atualizar(id):
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         nome = request.json.get('nome')  
         email = request.json.get('email')
         telefone = request.json.get('telefone')
@@ -212,16 +213,16 @@ def atualizar(id):
             return jsonify(message='Campo "id" é obrigatório'), 400
         if nome:
             cursor.execute('UPDATE aluno SET nome = %s WHERE Cod_aluno = %s', (nome, id))
-            db.commit()
+            conn.commit()
         if email:
             cursor.execute('UPDATE aluno SET email = %s WHERE Cod_aluno = %s', (email, id))
-            db.commit()
+            conn.commit()
         if telefone:
             cursor.execute('UPDATE aluno SET telefone = %s WHERE Cod_aluno = %s', (telefone, id))
-            db.commit()
+            conn.commit()
         if instrutor:
             cursor.execute('UPDATE aluno SET Cod_instrutor = %s WHERE Cod_aluno = %s', (Cod_instrutor, id))
-            db.commit()
+            conn.commit()
         if cursor.rowcount > 0:
             return jsonify(message='Aluno atualizado com sucesso'), 200
         else:
@@ -237,11 +238,11 @@ def atualizar(id):
 @jwt_required()
 def deletar(id):
     try:
-        cursor = db.cursor()
+        cursor = conn.cursor()
         if not id:
             return jsonify({'message': 'Aluno não encontrado'}), 404
         cursor.execute('delete from aluno where Cod_aluno=%s', (id,))
-        db.commit()
+        conn.commit()
         if cursor.rowcount > 0:
             return jsonify(message='Aluno deletado com sucesso'), 200
         else:
@@ -257,7 +258,7 @@ def deletar(id):
 def login():
     try:
         login_data = request.get_json()
-        cursor = db.cursor()
+        cursor = conn.cursor()
         if 'username' not in login_data or 'password' not in login_data:
             return jsonify({'message': 'Nome de usuário e senha são obrigatórios'}), 400
         username = login_data['username']
@@ -266,9 +267,9 @@ def login():
         result = cursor.fetchone()
         if not result:
             return jsonify({'message': 'Nome de usuário ou senha incorretos'}), 401
-        hashed_password_from_db = result[0]
+        hashed_password_from_conn = result[0]
         hashed_password_input = sha256(password.encode('utf-8')).hexdigest()        
-        if hashed_password_input == hashed_password_from_db:
+        if hashed_password_input == hashed_password_from_conn:
             access_token = create_access_token(identity=username)
             return jsonify(access_token=access_token), 200
         else:
