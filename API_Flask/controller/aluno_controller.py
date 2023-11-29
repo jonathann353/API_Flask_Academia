@@ -3,7 +3,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from hashlib import sha256
 #from model.connection import conn ##conexão com o workbench 
 from model.db_postgres import conn ##conexão com o postgres 
-from model.db_admin import UserTest ##descomente está linha para usar o usuário de teste
+#from model.db_admin import UserTest ##descomente está linha para usar o usuário de teste
 
 MY_APP = Blueprint('MY_APP', __name__)#link do controller com a main
 
