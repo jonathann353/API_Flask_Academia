@@ -34,9 +34,9 @@ def listar():
 
 
 #rota "/adm" faz a inserção de um novo administrador do sistema
-@MY_APP.route('/adm', methods=['POST'])
+@MY_APP.route('/criar_administrador', methods=['POST'])
 @jwt_required()
-def admin():
+def criar_administrador():
     try:
         cursor = conn.cursor()
         adm = request.json
@@ -138,9 +138,9 @@ def buscar(id):
 
 
 #rota "/aluno/id" metodo GET faz uma busca no sistema pelo id do aluno   
-@MY_APP.route('/alunoInstrutor/<int:id>', methods=['GET'])
+@MY_APP.route('/detalhes_aluno_e_instrutores/<int:id>', methods=['GET'])
 # @jwt_required()
-def buscarAlunoInstrutor(id):
+def detalhes_aluno_e_instrutores(id):
     try:
         cursor = conn.cursor()
         if not id:
@@ -168,9 +168,9 @@ def buscarAlunoInstrutor(id):
         cursor.close()
 
 
-@MY_APP.route('/treinoaluno/<int:id>', methods=['GET'])
+@MY_APP.route('/detalhes_treino_aluno/<int:id>', methods=['GET'])
 #@jwt_required()
-def treinoaluno(id):
+def detalhes_treino_aluno(id):
     try:
         cursor = conn.cursor()
         if not id:

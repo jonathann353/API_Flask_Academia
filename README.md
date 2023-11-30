@@ -1,71 +1,102 @@
-## API Flask para Gerenciamento de Alunos ##
+API Flask para Gerenciamento de Alunos
 Esta é uma API Flask simples para gerenciamento de alunos, onde você pode realizar operações CRUD (Criar, Ler, Atualizar, Deletar) sobre informações de alunos.
 
-Rotas Disponíveis
+Endpoints
+Aqui estão alguns dos principais endpoints disponíveis nesta API.
+
 Listar Alunos
-Rota: /
-Método: GET
-Autenticação: JWT Token obrigatório
-Descrição: Obtém a lista de todos os alunos cadastrados.
+GET '/' 
+Retorna uma lista de todos os alunos cadastrados no sistema.
+--------------------------------------------------------------
+POST '/criar_administrador'
+Permite a criação de um novo administrador do sistema.
 
-Inserir Aluno
-Rota: /aluno
-Método: POST
-Autenticação: JWT Token obrigatório
-Parâmetros no Corpo da Requisição (JSON):
+Parâmetros
+Campo	Tipo	Descrição
+username	string	Nome de usuário do administrador.
+password	string	Senha do administrador.
+Adicionar Aluno
+--------------------------------------------------------------
+POST '/aluno'
+Adiciona um novo aluno ao sistema.
 
-nome (obrigatório): Nome do aluno.
-cpf (obrigatório): CPF do aluno.
-email (obrigatório): E-mail do aluno.
-telefone (obrigatório): Número de telefone do aluno.
-Descrição: Insere um novo aluno no sistema.
+Parâmetros
+Campo	Tipo	Descrição
+nome	string	Nome do aluno.
+cpf	string	CPF do aluno.
+email	string	E-mail do aluno.
+telefone	string	Número de telefone do aluno.
+Cod_instrutor	int	Código do instrutor do aluno.
 
-Buscar Aluno por ID
-Rota: /aluno/<int:id>
-Método: GET
-Autenticação: JWT Token obrigatório
-Parâmetros de URL:
+--------------------------------------------------------------
+POST '/instrutor'
+Adiciona um novo instrutor ao sistema.
 
-id (obrigatório): ID do aluno a ser buscado.
-Descrição: Obtém as informações de um aluno específico com base no ID.
+Parâmetros
+Campo	Tipo	Descrição
+nome	string	Nome do instrutor.
+Num_Confef	string	Número Confef do instrutor.
+telefone	string	Número de telefone do instrutor.
+funcao	string	Função do instrutor.
 
-Atualizar Aluno por ID
-Rota: /aluno/<int:id>
-Método: PUT
-Autenticação: JWT Token obrigatório
-Parâmetros de URL:
+--------------------------------------------------------------
+POST '/treino'
+Adiciona um novo treino ao sistema.
 
-id (obrigatório): ID do aluno a ser atualizado.
-Parâmetros no Corpo da Requisição (JSON):
-nome (obrigatório): Novo nome do aluno.
-email (obrigatório): Novo e-mail do aluno.
-telefone (obrigatório): Novo número de telefone do aluno.
-Descrição: Atualiza as informações de um aluno específico com base no ID.
+Parâmetros
+Campo	Tipo	Descrição
+tipo_treino	string	Tipo de treino.
+exercicio	string	Nome do exercício.
+serie	int	Número de séries do exercício.
+repeticao	int	Número de repetições do exercício.
+Cod_aluno	int	Código do aluno associado ao treino.
+Cod_instrutor	int	Código do instrutor associado ao treino.
+Detalhes do Aluno e Instrutores
+--------------------------------------------------------------
+GET '/detalhes_aluno_e_instrutores/{id}'
+Retorna detalhes de um aluno e os instrutores associados a esse aluno.
 
-Deletar Aluno por ID
-Rota: /aluno/<int:id>
-Método: DELETE
-Autenticação: JWT Token obrigatório
-Parâmetros de URL:
+Parâmetros
+Campo	Tipo	Descrição
+id	int	Identificador único do aluno.
+Detalhes do Treino do Aluno
+--------------------------------------------------------------
+GET '/detalhes_treino_aluno/{id}'
+Retorna detalhes do treino associado a um aluno.
 
-id (obrigatório): ID do aluno a ser deletado.
-Descrição: Deleta um aluno específico com base no ID.
+Parâmetros
+Campo	Tipo	Descrição
+id	int	Identificador único do aluno.
+Atualizar Aluno
+--------------------------------------------------------------
+PUT '/aluno/{id}'
+Atualiza os detalhes de um aluno.
 
-Login
-Rota: /login
-Método: POST
-Parâmetros no Corpo da Requisição (JSON):
+Parâmetros
+Campo	Tipo	Descrição
+id	int	Identificador único do aluno.
+nome	string	Novo nome do aluno.
+email	string	Novo e-mail do aluno.
+telefone	string	Novo número de telefone do aluno.
+Cod_instrutor	int	Novo código do instrutor do aluno.
+Excluir Aluno
+--------------------------------------------------------------
+DELETE '/aluno/{id}'
+Exclui um aluno do sistema.
 
-username (obrigatório): Nome de usuário.
-password (obrigatório): Senha.
-Descrição: Realiza o login e fornece um token JWT para autenticação.
+Parâmetros
+Campo	Tipo	Descrição
+id	int	Identificador único do aluno.
+Login do Administrador
+--------------------------------------------------------------
+POST '/login'
+Realiza a autenticação do administrador no sistema.
 
-Verificar Login
-Rota: /logado
-Método: GET
-Autenticação: JWT Token obrigatório
-Descrição: Verifica se o usuário está autenticado e retorna o nome do usuário logado.
-
-## Executando a Aplicação ##
-Instale as dependências executando o sequinte comando:
-pip install -r requirements.txt
+Parâmetros
+Campo	Tipo	Descrição
+username	string	Nome de usuário do administrador.
+password	string	Senha do administrador.
+Status de Logado
+--------------------------------------------------------------
+GET '/logado'
+Indica qual administrador está logado no momento.
