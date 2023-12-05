@@ -38,20 +38,21 @@ def listar():
 @jwt_required()
 def criar_administrador():
     try:
-        cursor = conn.cursor()
         adm = request.json
         if 'username' not in adm or 'password' not in adm:
-            return jsonify(message='Campos obrigatórios: username e password'), 400        
+            return jsonify(message='Campos obrigatórios: username e password'), 400
+
         password = adm["password"]
         hash_senha = sha256(password.encode()).hexdigest()
-        cursor.execute('INSERT INTO administrativo(username, password) VALUES(%s, %s)', (adm["username"], hash_senha))
-        cursor.execute()
-        conn.commit() 
+
+        with conn.cursor() as cursor:
+            cursor.execute('INSERT INTO administrativo(username, password) VALUES(%s, %s)', (adm["username"], hash_senha))
+            conn.commit()
+
         return jsonify({'message': 'adm inserido com sucesso'}), 201
+
     except Exception as err:
         return jsonify({'message': str(err)}), 500
-    finally:
-        cursor.close()
 
 
 #rota "/aluno" adiciona um novo aluno no sistema 
