@@ -177,7 +177,7 @@ def detalhes_treino_aluno(id):
         if not id:
             return jsonify(message='Campo id é obrigatórios'), 400
 
-        cursor.execute('SELECT aluno.nome AS NomeAluno, instrutor.nome AS NomeInstrutor, treino.tipo_treino, treino.exercicio, treino.serie, treino.repeticao FROM treino JOIN aluno ON treino.Cod_aluno = aluno.Cod_aluno JOIN instrutor ON treino.Cod_instrutor = instrutor.Cod_instrutor WHERE aluno.Cod_aluno = %s', (id,))
+        cursor.execute('SELECT aluno.nome AS NomeAluno, instrutor.nome AS NomeInstrutor, treino.tipo_de_treino, treino.exercicios, treino.serie, treino.repeticoes FROM treino JOIN aluno ON treino.Cod_aluno = aluno.Cod_aluno JOIN instrutor ON aluno.Cod_instrutor = instrutor.Cod_instrutor WHERE aluno.Cod_aluno = %s', (id,))
         aluno = cursor.fetchall()
         if aluno:
             for dados in aluno:
