@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager
-from controller.aluno_controller import MY_APP
+#from controller.aluno_controller import MY_APP
+from controller.supabase_aluno_controller import MY_APP
 
 try:
     app = Flask(__name__)
