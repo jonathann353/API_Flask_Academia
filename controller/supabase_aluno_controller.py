@@ -1,10 +1,22 @@
+from dotenv import load_dotenv
+from flask import request, jsonify
+from functools import wraps
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from hashlib import sha256
 from model.db_supabase import supabase
+import datetime
+import jwt
+import os
 
 
 MY_APP = Blueprint('MY_APP', __name__)#link do controller com a main
+
+# Carrega as variáveis do arquivo .env
+load_dotenv()
+
+# Agora você pode acessar as variáveis de ambiente
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # Rota para listar alunos
 @MY_APP.route('/', methods=['GET'])
@@ -147,20 +159,39 @@ def login():
         if not email or not senha:
             return jsonify(message="Email e senha são obrigatórios"), 400
 
-        # Realizando login com o Supabase
+        # Tentando fazer login com o Supabase
         response = supabase.auth.sign_in_with_password({
             'email': email,
             'password': senha
         })
 
         # Verificando se o login foi bem-sucedido
-        if response.get('user'):
-            return jsonify(message="Usuário logado com sucesso", user=response['user']), 200
+        if response.user:  # Verifica se o usuário foi autenticado com sucesso
+            # Extraindo os dados do usuário
+            user_data = {
+                'id': response.user.id,
+                'email': response.user.email
+            }
+
+            # Gerando o token JWT
+            payload = {
+                'user_id': user_data['id'],
+                'email': user_data['email'],
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Expiração do token (1 hora)
+            }
+            token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
+            # Retornando a resposta com o token
+            return jsonify(message="Login bem-sucedido", user=user_data, token=token), 200
+
         else:
-            return jsonify(message="Erro ao fazer login", error=str(response)), 400
+            # Se houver erro, acessa o atributo 'error'
+            error_message = response.error.message if response.error else "Erro desconhecido"
+            return jsonify(message=f"Erro ao fazer login: {error_message}"), 401
 
     except Exception as e:
         return jsonify(message=str(e)), 500
+    
 
 @MY_APP.route('/logout', methods=['POST'])
 def logout():
@@ -173,12 +204,33 @@ def logout():
     except Exception as e:
         return jsonify(message=str(e)), 500
 
+# Função de decorador para exigir um JWT
+def jwt_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization')  # Obtendo o cabeçalho 'Authorization'
+        if not token:
+            return jsonify(message="Token de autenticação ausente"), 401
+        
+        token = token.split("Bearer ")[-1]  # Remove o "Bearer" para pegar o token puro
+        
+        try:
+            # Decodificando o token com a chave secreta do Supabase (substitua 'sua-chave-secreta-aqui' pela chave real)
+            decoded_token = jwt.decode(token, 'sua-chave-secreta-aqui', algorithms=['HS256'])
+            request.user = decoded_token  # Adiciona o usuário decodificado à requisição
+        except jwt.ExpiredSignatureError:
+            return jsonify(message="Token expirado"), 401
+        except jwt.InvalidTokenError:
+            return jsonify(message="Token inválido"), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Rota para verificar o usuário
 @MY_APP.route('/verificar_usuario', methods=['GET'])
-@jwt_required()  # Você pode adicionar essa proteção se usar JWT ou outra forma de autenticação
+@jwt_required  # Apenas decorador
 def verificar_usuario():
     try:
-        # Obtendo informações do usuário logado
-        user = supabase.auth.get_user()
+        user = request.user  # Obtendo usuário do token decodificado
 
         if user:
             return jsonify({
