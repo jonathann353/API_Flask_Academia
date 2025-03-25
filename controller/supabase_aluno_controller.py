@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from flask import request, jsonify
 from functools import wraps
-from flask import Blueprint, jsonify, request
+from flask import Blueprint
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from hashlib import sha256
 from model.db_supabase import supabase
@@ -9,8 +9,7 @@ import datetime
 import jwt
 import os
 
-
-MY_APP = Blueprint('MY_APP', __name__)#link do controller com a main
+MY_APP = Blueprint('MY_APP', __name__)  # Link do controller com a main
 
 # Carrega as variáveis do arquivo .env
 load_dotenv()
@@ -18,26 +17,35 @@ load_dotenv()
 # Agora você pode acessar as variáveis de ambiente
 SECRET_KEY = os.getenv("SECRET_KEY")
 
+# Função para verificar se os campos obrigatórios estão no JSON
+def validar_campos(campos, dados):
+    for campo in campos:
+        if campo not in dados:
+            return False, f"Campo obrigatório: {campo}"
+    return True, None
+
 # Rota para listar alunos
 @MY_APP.route('/', methods=['GET'])
-@jwt_required()
+#@jwt_required()
 def listar():
     try:
         # Consultando dados de alunos no Supabase
         response = supabase.table('aluno').select('*').execute()
         lista_alunos = response.data
-        return jsonify(mensagem='lista de alunos', dados=lista_alunos), 200
+        return jsonify(mensagem='Lista de alunos', dados=lista_alunos), 200
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 # Rota para criar um novo administrador
 @MY_APP.route('/criar_administrador', methods=['POST'])
-@jwt_required()
+#@jwt_required()
 def criar_administrador():
     try:
         adm = request.json
-        if 'username' not in adm or 'password' not in adm:
-            return jsonify(message='Campos obrigatórios: username e password'), 400
+        campos_obrigatorios = ['username', 'password']
+        valido, mensagem = validar_campos(campos_obrigatorios, adm)
+        if not valido:
+            return jsonify(message=mensagem), 400
 
         password = adm["password"]
         hash_senha = sha256(password.encode()).hexdigest()
@@ -48,18 +56,20 @@ def criar_administrador():
             'password': hash_senha
         }]).execute()
 
-        return jsonify({'message': 'adm inserido com sucesso'}), 201
+        return jsonify({'message': 'Administrador inserido com sucesso'}), 201
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 # Rota para inserir um novo aluno
 @MY_APP.route('/aluno', methods=['POST'])
-@jwt_required()
+#@jwt_required()
 def inserir():
     try:
         aluno = request.json
-        if 'nome' not in aluno or 'cpf' not in aluno or 'email' not in aluno or 'telefone' not in aluno or 'Cod_instrutor' not in aluno:
-            return jsonify({'message': 'Campos obrigatórios: nome, cpf, email e telefone, Cod_instrutor'}), 400
+        campos_obrigatorios = ['nome', 'cpf', 'email', 'telefone', 'Cod_instrutor']
+        valido, mensagem = validar_campos(campos_obrigatorios, aluno)
+        if not valido:
+            return jsonify({'message': mensagem}), 400
         
         # Inserindo novo aluno no Supabase
         response = supabase.table('aluno').insert([{
@@ -76,7 +86,7 @@ def inserir():
 
 # Rota para atualizar aluno
 @MY_APP.route('/aluno/<int:id>', methods=['PUT'])
-@jwt_required()
+#@jwt_required()
 def atualizar(id):
     try:
         nome = request.json.get('nome')  
@@ -88,15 +98,12 @@ def atualizar(id):
             return jsonify(message='Campos obrigatórios: nome, email, telefone e Cod_instrutor'), 400
         
         # Atualizando os dados do aluno no Supabase
-        update_data = {}
-        if nome:
-            update_data['nome'] = nome
-        if email:
-            update_data['email'] = email
-        if telefone:
-            update_data['telefone'] = telefone
-        if Cod_instrutor:
-            update_data['Cod_instrutor'] = Cod_instrutor
+        update_data = {
+            'nome': nome,
+            'email': email,
+            'telefone': telefone,
+            'Cod_instrutor': Cod_instrutor
+        }
 
         response = supabase.table('aluno').update(update_data).eq('Cod_aluno', id).execute()
 
@@ -109,7 +116,7 @@ def atualizar(id):
 
 # Rota para deletar aluno
 @MY_APP.route('/aluno/<int:id>', methods=['DELETE'])
-@jwt_required()
+#@jwt_required()
 def deletar(id):
     try:
         # Deletando aluno no Supabase
@@ -122,6 +129,7 @@ def deletar(id):
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
+# Rota para registrar um novo usuário
 @MY_APP.route('/registrar', methods=['POST'])
 def registrar():
     try:
@@ -142,123 +150,85 @@ def registrar():
         if response.user:
             return jsonify(message="Usuário registrado com sucesso"), 201
         else:
-            # Se não houver um usuário, podemos tentar acessar o erro de outra forma
             return jsonify(message="Erro ao registrar usuário", error=str(response)), 400
 
     except Exception as e:
         return jsonify(message=str(e)), 500
-    
-    
-@MY_APP.route('/login', methods=['POST'])
-def login():
-    try:
-        # Dados de login
-        email = request.json.get('email')
-        senha = request.json.get('senha')
 
-        if not email or not senha:
-            return jsonify(message="Email e senha são obrigatórios"), 400
+# Rota para login
+# @MY_APP.route('/login', methods=['POST'])
+# def login():
+#     try:
+#         email = request.json.get('email')
+#         senha = request.json.get('senha')
 
-        # Tentando fazer login com o Supabase
-        response = supabase.auth.sign_in_with_password({
-            'email': email,
-            'password': senha
-        })
+#         if not email or not senha:
+#             return jsonify(message="Email e senha são obrigatórios"), 400
 
-        # Verificando se o login foi bem-sucedido
-        if response.user:  # Verifica se o usuário foi autenticado com sucesso
-            # Extraindo os dados do usuário
-            user_data = {
-                'id': response.user.id,
-                'email': response.user.email
-            }
+#         # Tentando autenticação no Supabase
+#         response = supabase.auth.sign_in_with_password({
+#             "email": email,
+#             "password": senha
+#         })
 
-            # Gerando o token JWT
-            payload = {
-                'user_id': user_data['id'],
-                'email': user_data['email'],
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Expiração do token (1 hora)
-            }
-            token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+#         # Verificando se a resposta contém user e session
+#         if response and response.user:
+#             token = response.session.access_token  # Obtendo o token do Supabase
 
-            # Retornando a resposta com o token
-            return jsonify(message="Login bem-sucedido", user=user_data, token=token), 200
+#             return jsonify(
+#                 message="Login bem-sucedido",
+#                 user={"id": response.user.id, "email": response.user.email},
+#                 token=token
+#             ), 200
 
-        else:
-            # Se houver erro, acessa o atributo 'error'
-            error_message = response.error.message if response.error else "Erro desconhecido"
-            return jsonify(message=f"Erro ao fazer login: {error_message}"), 401
+#         else:
+#             return jsonify(message="Falha no login"), 401
 
-    except Exception as e:
-        return jsonify(message=str(e)), 500
-    
+#     except Exception as e:
+#         return jsonify(message=f"Erro: {str(e)}"), 500
 
-@MY_APP.route('/logout', methods=['POST'])
-def logout():
-    try:
-        # Desconectando o usuário
-        response = supabase.auth.sign_out()
+# # Rota para logout
+# @MY_APP.route('/logout', methods=['POST'])
+# def logout():
+#     try:
+#         # Desconectando o usuário
+#         response = supabase.auth.sign_out()
 
-        return jsonify(message="Logout bem-sucedido"), 200
+#         return jsonify(message="Logout bem-sucedido"), 200
 
-    except Exception as e:
-        return jsonify(message=str(e)), 500
-
-# Função de decorador para exigir um JWT
-def jwt_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = request.headers.get('Authorization')  # Obtendo o cabeçalho 'Authorization'
-        if not token:
-            return jsonify(message="Token de autenticação ausente"), 401
-        
-        token = token.split("Bearer ")[-1]  # Remove o "Bearer" para pegar o token puro
-        
-        try:
-            # Decodificando o token com a chave secreta do Supabase (substitua 'sua-chave-secreta-aqui' pela chave real)
-            decoded_token = jwt.decode(token, 'sua-chave-secreta-aqui', algorithms=['HS256'])
-            request.user = decoded_token  # Adiciona o usuário decodificado à requisição
-        except jwt.ExpiredSignatureError:
-            return jsonify(message="Token expirado"), 401
-        except jwt.InvalidTokenError:
-            return jsonify(message="Token inválido"), 401
-        return f(*args, **kwargs)
-    return decorated_function
+#     except Exception as e:
+#         return jsonify(message=str(e)), 500
 
 # Rota para verificar o usuário
-@MY_APP.route('/verificar_usuario', methods=['GET'])
-@jwt_required  # Apenas decorador
-def verificar_usuario():
-    try:
-        user = request.user  # Obtendo usuário do token decodificado
+# @MY_APP.route('/verificar_usuario', methods=['GET'])
+# @jwt_required()  # Requer um token fresco
+# def verificar_usuario():
+#     try:
+#         user_identity = get_jwt_identity()
+#         if user_identity:
+#             return jsonify({'message': 'Usuário autenticado', 'user': user_identity}), 200
+#         else:
+#             return jsonify(message="Usuário não autenticado"), 401
 
-        if user:
-            return jsonify({
-                'message': 'Usuário autenticado',
-                'user': user
-            }), 200
-        else:
-            return jsonify(message="Usuário não autenticado"), 401
+#     except Exception as e:
+#         return jsonify(message=f"Erro interno: {str(e)}"), 500
 
-    except Exception as e:
-        return jsonify(message=str(e)), 500
+# # Rota para verificar email
+# @MY_APP.route('/verificar_email', methods=['POST'])
+# def verificar_email():
+#     try:
+#         email = request.json.get('email')
 
+#         if not email:
+#             return jsonify(message="Email é obrigatório"), 400
 
-@MY_APP.route('/verificar_email', methods=['POST'])
-def verificar_email():
-    try:
-        email = request.json.get('email')
+#         # Enviando email de verificação
+#         response = supabase.auth.api.send_verification_email(email)
 
-        if not email:
-            return jsonify(message="Email é obrigatório"), 400
+#         if response.get('email'):
+#             return jsonify(message="Email de verificação enviado"), 200
+#         else:
+#             return jsonify(message="Erro ao enviar email de verificação"), 400
 
-        # Enviando email de verificação
-        response = supabase.auth.api.send_verification_email(email)
-
-        if response.get('email'):
-            return jsonify(message="Email de verificação enviado"), 200
-        else:
-            return jsonify(message="Erro ao enviar email de verificação"), 400
-
-    except Exception as e:
-        return jsonify(message=str(e)), 500
+#     except Exception as e:
+#         return jsonify(message=str(e)), 500
