@@ -66,7 +66,7 @@ def criar_administrador():
 def inserir():
     try:
         aluno = request.json
-        campos_obrigatorios = ['nome', 'cpf', 'email', 'telefone', 'Cod_instrutor']
+        campos_obrigatorios = ['nome', 'cpf', 'email', 'telefone']
         valido, mensagem = validar_campos(campos_obrigatorios, aluno)
         if not valido:
             return jsonify({'message': mensagem}), 400
@@ -76,8 +76,7 @@ def inserir():
             'nome': aluno["nome"],
             'cpf': aluno["cpf"],
             'email': aluno["email"],
-            'telefone': aluno["telefone"],
-            'Cod_instrutor': aluno["Cod_instrutor"]
+            'telefone': aluno["telefone"]
         }]).execute()
 
         return jsonify({'message': 'Aluno inserido com sucesso'}), 201
