@@ -5,10 +5,16 @@ from hashlib import sha256
 from model.db_postgres import conn ##conexão com o postgres 
 # from model.db_admin import UserTest ##descomente está linha para usar o usuário de teste
 from model.db_supabase import supabase
+import os
 
 MY_APP = Blueprint('MY_APP', __name__)#link do controller com a main
 
+# Supabase URL e chave (substitua pelos valores da sua conta Supabase)
+SUPABASE_URL = os.getenv("https://pgdldfqzqgxowqedrldh.supabase.co")
+SUPABASE_KEY = os.getenv("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnZGxkZnF6cWd4b3dxZWRybGRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Nzk0MjksImV4cCI6MjA1MzE1NTQyOX0.jntDjoG90UW916FljiMlrmM4YqaNLeTphwTO2IPkY9E")
 
+# Criação do cliente Supabase
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 #rota "/" raiz da aplicação lista os alunos cadastrados no sistema
 @MY_APP.route('/', methods=['GET'])
 @jwt_required()
