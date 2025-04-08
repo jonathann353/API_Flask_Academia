@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 from controller.supabase_aluno_controller import MY_APP  # Certifique-se de que o import está correto
+import os
 
 def create_app():
     try:
@@ -14,8 +15,9 @@ def create_app():
         app.json.sort_keys = False  # Desativa a ordem alfabética de exibição do JSON
 
         # Configuração da chave secreta para JWT
-        app.config["JWT_SECRET_KEY"] = "borboleta"  # Defina a chave secreta de autenticação com JWT
+        app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")  # Defina a chave secreta de autenticação com JWT
         jwt = JWTManager(app)  # Inicializando o gerenciador de JWT
+
 
         return app
 
