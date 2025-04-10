@@ -215,8 +215,21 @@ def detalhes_Treino_Aluno(id):
         if not response_treino.data:
             return jsonify(message='Treino não encontrado'), 404
 
-        treino = response_treino.data[0]
-
+        treinos = response_treino.data[0]
+        #excluir esse trecho abaixo
+        '''
+            lista_treino = [
+                {
+            'nome_aluno': nome_aluno,
+            'nome_instrutor': nome_instrutor,
+            'treino': {
+                'tipo_treino': treino.get('tipo_treino'),
+                'exercicio': treino.get('exercicio'),
+                'serie': treino.get('serie'),
+                'repeticao': treino.get('repeticao')
+            }for treino in response_treino.data
+            ]
+        '''
         # Pega os dados do aluno
         response_aluno = supabase.table('aluno').select('nome').eq('cod_aluno', id).execute()
         nome_aluno = response_aluno.data[0]['nome'] if response_aluno.data else 'Não informado'
@@ -238,7 +251,7 @@ def detalhes_Treino_Aluno(id):
                 'serie': treino.get('serie'),
                 'repeticao': treino.get('repeticao')
             }
-        }), 200
+        }for treino in response_treino.data), 200#excluir o for se der erro
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
