@@ -251,7 +251,7 @@ def detalhes_Treino_Aluno(id):
                 'serie': treino.get('serie'),
                 'repeticao': treino.get('repeticao')
             }
-        }for treino in response_treino.data), 200#excluir o for se der erro
+        }for treinos in response_treino.data), 200#excluir o for se der erro
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
