@@ -209,53 +209,42 @@ def detalhes_Treino_Aluno(id):
         if not id:
             return jsonify(message='Campo id é obrigatório'), 400
 
-        # Consulta o treino do aluno
+        # Consulta os treinos do aluno
         response_treino = supabase.table('treino').select('*').eq('cod_aluno', id).execute()
-
         if not response_treino.data:
-            return jsonify(message='Treino não encontrado'), 404
+            return jsonify(message='Treinos não encontrados'), 404
 
         treinos = response_treino.data
-        #excluir esse trecho abaixo
-        '''
-            lista_treino = [
-                {
-            'nome_aluno': nome_aluno,
-            'nome_instrutor': nome_instrutor,
-            'treino': {
-                'tipo_treino': treino.get('tipo_treino'),
-                'exercicio': treino.get('exercicio'),
-                'serie': treino.get('serie'),
-                'repeticao': treino.get('repeticao')
-            }for treino in response_treino.data
-            ]
-        '''
-        # Pega os dados do aluno
+
+        # Pega o nome do aluno
         response_aluno = supabase.table('aluno').select('nome').eq('cod_aluno', id).execute()
         nome_aluno = response_aluno.data[0]['nome'] if response_aluno.data else 'Não informado'
 
-        # Pega os dados do instrutor, se houver
-        cod_instrutor = treino.get('cod_instrutor')
-        if cod_instrutor:
-            response_instrutor = supabase.table('instrutor').select('nome').eq('cod_instrutor', cod_instrutor).execute()
-            nome_instrutor = response_instrutor.data[0]['nome'] if response_instrutor.data else 'Não informado'
-        else:
-            nome_instrutor = 'Não informado'
+        resultado = []
+        for treino in treinos:
+            cod_instrutor = treino.get('cod_instrutor')
+            if cod_instrutor:
+                response_instrutor = supabase.table('instrutor').select('nome').eq('cod_instrutor', cod_instrutor).execute()
+                nome_instrutor = response_instrutor.data[0]['nome'] if response_instrutor.data else 'Não informado'
+            else:
+                nome_instrutor = 'Não informado'
 
-        return jsonify({
-            'nome_aluno': nome_aluno,
-            'nome_instrutor': nome_instrutor,
-            'treino': {
-                'tipo_treino': treinos.get('tipo_treino'),
-                'exercicio': treinos.get('exercicio'),
-                'serie': treinos.get('serie'),
-                'repeticao': treinos.get('repeticao')
-            }
-        }for treinos in response_treino.data), 200#excluir o for se der erro
+            resultado.append({
+                'nome_aluno': nome_aluno,
+                'nome_instrutor': nome_instrutor,
+                'treino': {
+                    'tipo_treino': treino.get('tipo_treino'),
+                    'exercicio': treino.get('exercicio'),
+                    'serie': treino.get('serie'),
+                    'repeticao': treino.get('repeticao')
+                }
+            })
+
+        return jsonify(resultado), 200
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
-    
+   
     
 # Rota "/aluno/id" - método PUT atualiza os dados do aluno
 @MY_APP.route('/atualizar/aluno/<int:id>', methods=['PUT'])
