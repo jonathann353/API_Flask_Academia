@@ -215,7 +215,7 @@ def detalhes_Treino_Aluno(id):
         if not response_treino.data:
             return jsonify(message='Treino não encontrado'), 404
 
-        treinos = response_treino.data[0]
+        treinos = response_treino.data
         #excluir esse trecho abaixo
         '''
             lista_treino = [
@@ -246,10 +246,10 @@ def detalhes_Treino_Aluno(id):
             'nome_aluno': nome_aluno,
             'nome_instrutor': nome_instrutor,
             'treino': {
-                'tipo_treino': treino.get('tipo_treino'),
-                'exercicio': treino.get('exercicio'),
-                'serie': treino.get('serie'),
-                'repeticao': treino.get('repeticao')
+                'tipo_treino': treinos.get('tipo_treino'),
+                'exercicio': treinos.get('exercicio'),
+                'serie': treinos.get('serie'),
+                'repeticao': treinos.get('repeticao')
             }
         }for treinos in response_treino.data), 200#excluir o for se der erro
 
