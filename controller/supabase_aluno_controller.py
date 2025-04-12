@@ -310,48 +310,62 @@ def adicionar_Treino():
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
-def login_view(request):
-    form = LoginForm(request.POST or None)
+@app.route('/login', methods=['POST'])
+def login_user():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
 
-    msg = None
+    if not username or not password:
+        return jsonify({"error": "Missing credentials"}), 400
 
-    if request.method == "POST":
+    response = supabase.table("auth_user").select("*").eq("username", username).execute()
+    user_data = response.data
 
-        if form.is_valid():
-            username = form.cleaned_data.get("username")
-            password = form.cleaned_data.get("password")
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect("/")
-            else:
-                msg = 'Invalid credentials'
-        else:
-            msg = 'Error validating the form'
+    if not user_data:
+        return jsonify({"error": "Invalid credentials"}), 401
 
-    return render(request, "accounts/login.html", {"form": form, "msg": msg})
+    user = user_data[0]
 
-
-def register_user(request):
-    msg = None
-    success = False
-
-    if request.method == "POST":
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get("username")
-            raw_password = form.cleaned_data.get("password1")
-            user = authenticate(username=username, password=raw_password)
-
-            msg = 'User created - please <a href="/login">login</a>.'
-            success = True
-
-            # return redirect("/login/")
-
-        else:
-            msg = 'Form is not valid'
+    if check_password_hash(user["password"], password):
+        access_token = create_access_token(
+            identity={"id": user["id"], "username": user["username"]},
+            expires_delta=timedelta(hours=2)
+        )
+        return jsonify(access_token=access_token), 200
     else:
-        form = SignUpForm()
+        return jsonify({"error": "Invalid credentials"}), 401
 
-    return render(request, "accounts/register.html", {"form": form, "msg": msg, "success": success})
+
+@app.route('/register', methods=['POST'])
+def register_user():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+
+    if not username or not email or not password:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    existing_user = supabase.table("auth_user").select("*").eq("username", username).execute()
+    if existing_user.data:
+        return jsonify({"error": "User already exists"}), 409
+
+    hashed_password = generate_password_hash(password)
+
+    result = supabase.table("auth_user").insert({
+        "username": username,
+        "email": email,
+        "password": hashed_password
+    }).execute()
+
+    if result.status_code == 201:
+        return jsonify({"message": "User registered successfully"}), 201
+    else:
+        return jsonify({"error": "Failed to register user"}), 500
+
+@app.route("/logado", methods=["GET"])
+@jwt_required()
+def logado():
+    current_user = get_jwt_identity()
+    return jsonify({"user": current_user}), 200
