@@ -310,7 +310,7 @@ def adicionar_Treino():
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
-@app.route('/login', methods=['POST'])
+@MY_APP.route('/login', methods=['POST'])
 def login_user():
     data = request.get_json()
     username = data.get('username')
@@ -337,7 +337,7 @@ def login_user():
         return jsonify({"error": "Invalid credentials"}), 401
 
 
-@app.route('/register', methods=['POST'])
+@MY_APP.route('/register', methods=['POST'])
 def register_user():
     data = request.get_json()
     username = data.get('username')
@@ -364,7 +364,7 @@ def register_user():
     else:
         return jsonify({"error": "Failed to register user"}), 500
 
-@app.route("/logado", methods=["GET"])
+@MY_APP.route("/logado", methods=["GET"])
 @jwt_required()
 def logado():
     current_user = get_jwt_identity()
