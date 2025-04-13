@@ -63,7 +63,7 @@ def criar_administrador():
 
 #rota "/" raiz da aplicação lista os alunos cadastrados no sistema
 @MY_APP.route('/listar/aluno', methods=['GET'])
-@jwt_required()
+#@jwt_required()
 def listar_Aluno():
     try:
         response = supabase.table('aluno').select("*").execute()
