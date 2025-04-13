@@ -4,9 +4,12 @@ from functools import wraps
 from flask import Blueprint
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
+from hashlib import sha256
 from supabase import create_client, Client
 import logging
 from datetime import datetime
+from datetime import timedelta
 import jwt
 import os
 
@@ -314,65 +317,85 @@ def adicionar_Treino():
 
 @MY_APP.route('/login', methods=['POST'])
 def login_user():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    try:
+        login_data = request.get_json()
 
-    if not username or not password:
-        return jsonify({"error": "Missing credentials"}), 400
+        if 'username' not in login_data or 'password' not in login_data:
+            return jsonify({'message': 'Nome de usuário e senha são obrigatórios'}), 400
 
-    response = supabase.table("auth_user").select("*").eq("username", username).execute()
-    user_data = response.data
+        username = login_data['username']
+        password = login_data['password']
 
-    if not user_data:
-        return jsonify({"error": "Invalid credentials"}), 401
+        # Busca o usuário na tabela 'administrativo' no Supabase
+        response = supabase.table("auth_user").select("*").eq("username", username).execute()
+        user_data = response.data
 
-    user = user_data[0]
+        if not user_data:
+            return jsonify({'message': 'Nome de usuário ou senha incorretos'}), 401
 
-    if check_password_hash(user["password"], password):
-        access_token = create_access_token(
-            identity={"id": user["id"], "username": user["username"]},
-            expires_delta=timedelta(hours=2)
-        )
-        return jsonify(access_token=access_token), 200
-    else:
-        return jsonify({"error": "Invalid credentials"}), 401
+        # Pegando o hash da senha salva no banco
+        hashed_password_from_db = user_data[0]['password']
 
+        # Gerando hash da senha enviada pelo usuário
+        hashed_password_input = sha256(password.encode('utf-8')).hexdigest()
+
+        if hashed_password_input == hashed_password_from_db:
+            # Criando token com validade de 2h
+            access_token = create_access_token(identity=username, expires_delta=timedelta(hours=2))
+            return jsonify({'access_token': access_token}), 200
+        else:
+            return jsonify({'message': 'Nome de usuário ou senha incorretos'}), 401
+
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
 
 @MY_APP.route('/register', methods=['POST'])
 def register_user():
-    data = request.get_json()
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-    first_name = data.get('first_name', '')  # valor padrão = string vazia
-    last_name = data.get('last_name', '')    # valor padrão = string vazia
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        first_name = data.get('first_name') or ""
+        last_name = data.get('last_name') or ""
 
-    if not username or not email or not password:
-        return jsonify({"error": "Missing required fields"}), 400
+        if not username or not email or not password:
+            return jsonify({"error": "Missing required fields"}), 400
 
-    # Verifique se o usuário já existe
-    existing_user = supabase.table("auth_user").select("*").eq("username", username).execute()
-    if existing_user.data:
-        return jsonify({"error": "User already exists"}), 409
+        # Verifique se o usuário já existe
+        existing_user = supabase.table("auth_user").select("*").eq("username", username).execute()
+        if existing_user.data:
+            return jsonify({"error": "User already exists"}), 409
 
-    # Gerar a senha hash
-    hashed_password = generate_password_hash(password)
+        # Gerar hash da senha com sha256
+        hashed_password = sha256(password.encode('utf-8')).hexdigest()
 
-    # Inserir o novo usuário
-    result = supabase.table("auth_user").insert({
-        "username": username,
-        "email": email,
-        "password": hashed_password,
-        "is_superuser": False,
-        "is_staff": False,
-        "is_active": True,
-        "first_name": first_name,
-        "last_name": last_name,
-        "date_joined": datetime.utcnow().isoformat()  # garante formato ISO, compatível com Supabase
-    }).execute()
+        # Inserir o novo usuário
+        response = supabase.table("auth_user").insert({
+            "username": username,
+            "email": email,
+            "password": hashed_password,
+            "is_superuser": False,
+            "is_staff": False,
+            "is_active": True,
+            "first_name": first_name,
+            "last_name": last_name,
+            "date_joined": datetime.now().isoformat()
+        }).execute()
 
-    if result.status_code == 201:
-        return jsonify({"message": "User registered successfully"}), 201
-    else:
-        return jsonify({"error": "Failed to register user"}), 500
+        if response.data:
+            return jsonify({'message': 'Usuário adicionado com sucesso'}), 200
+        return jsonify({'message': 'Erro ao inserir usuário'}), 500
+
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
+
+
+@MY_APP.route('/logado', methods=['GET'])
+@jwt_required()
+def protected():
+    try:
+        current_user = get_jwt_identity()
+        return jsonify(f'Logado como: {current_user}'), 200
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
