@@ -359,7 +359,9 @@ def register_user():
         result = supabase.table("auth_user").insert({
             "username": username,
             "email": email,
-            "password": hashed_password
+            "password": hashed_password,
+            "is_superuser": False,  # Defina como False por padrão
+            "is_staff": False,       # Se houver o campo is_staff, defina como False
         }).execute()
 
         if result.status_code == 201:
