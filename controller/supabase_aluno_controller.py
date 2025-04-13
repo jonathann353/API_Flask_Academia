@@ -6,7 +6,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from werkzeug.security import generate_password_hash
 from supabase import create_client, Client
 import logging
-import datetime
+from datetime import datetime
 import jwt
 import os
 
@@ -345,30 +345,34 @@ def register_user():
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
+    first_name = data.get('first_name', '')  # valor padrão = string vazia
+    last_name = data.get('last_name', '')    # valor padrão = string vazia
 
     if not username or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
 
+    # Verifique se o usuário já existe
     existing_user = supabase.table("auth_user").select("*").eq("username", username).execute()
     if existing_user.data:
         return jsonify({"error": "User already exists"}), 409
 
+    # Gerar a senha hash
     hashed_password = generate_password_hash(password)
 
-    try:
-        result = supabase.table("auth_user").insert({
-            "username": username,
-            "email": email,
-            "password": hashed_password,
-            "is_superuser": False,  # Defina como False por padrão
-            "is_staff": False,       # Se houver o campo is_staff, defina como False
-        }).execute()
+    # Inserir o novo usuário
+    result = supabase.table("auth_user").insert({
+        "username": username,
+        "email": email,
+        "password": hashed_password,
+        "is_superuser": False,
+        "is_staff": False,
+        "is_active": True,
+        "first_name": first_name,
+        "last_name": last_name,
+        "date_joined": datetime.utcnow().isoformat()  # garante formato ISO, compatível com Supabase
+    }).execute()
 
-        if result.status_code == 201:
-            return jsonify({"message": "User registered successfully"}), 201
-        else:
-            logging.error(f"Supabase insert error: {result.error_message}")
-            return jsonify({"error": "Failed to register user"}), 500
-    except Exception as e:
-        logging.error(f"Unexpected error: {str(e)}")
-        return jsonify({"error": "Unexpected error occurred"}), 500
+    if result.status_code == 201:
+        return jsonify({"message": "User registered successfully"}), 201
+    else:
+        return jsonify({"error": "Failed to register user"}), 500
