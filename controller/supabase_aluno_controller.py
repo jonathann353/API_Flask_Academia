@@ -3,8 +3,9 @@ from flask import request, jsonify
 from functools import wraps
 from flask import Blueprint
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-from hashlib import sha256
+from werkzeug.security import generate_password_hash
 from supabase import create_client, Client
+import logging
 import datetime
 import jwt
 import os
@@ -23,6 +24,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # Crie o cliente do Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+logging.basicConfig(level=logging.DEBUG)
 # Função para verificar se os campos obrigatórios estão no JSON
 def validar_campos(campos, dados):
     for campo in campos:
@@ -353,19 +355,18 @@ def register_user():
 
     hashed_password = generate_password_hash(password)
 
-    result = supabase.table("auth_user").insert({
-        "username": username,
-        "email": email,
-        "password": hashed_password
-    }).execute()
+    try:
+        result = supabase.table("auth_user").insert({
+            "username": username,
+            "email": email,
+            "password": hashed_password
+        }).execute()
 
-    if result.status_code == 201:
-        return jsonify({"message": "User registered successfully"}), 201
-    else:
-        return jsonify({"error": "Failed to register user"}), 500
-
-@MY_APP.route("/logado", methods=["GET"])
-@jwt_required()
-def logado():
-    current_user = get_jwt_identity()
-    return jsonify({"user": current_user}), 200
+        if result.status_code == 201:
+            return jsonify({"message": "User registered successfully"}), 201
+        else:
+            logging.error(f"Supabase insert error: {result.error_message}")
+            return jsonify({"error": "Failed to register user"}), 500
+    except Exception as e:
+        logging.error(f"Unexpected error: {str(e)}")
+        return jsonify({"error": "Unexpected error occurred"}), 500
