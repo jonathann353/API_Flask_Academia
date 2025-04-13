@@ -15,9 +15,8 @@ def create_app():
         app.json.sort_keys = False  # Desativa a ordem alfabética de exibição do JSON
 
         # Configuração da chave secreta para JWT
-        app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")  # Defina a chave secreta de autenticação com JWT
+        app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "banana")  # Defina uma chave secreta segura
         jwt = JWTManager(app)  # Inicializando o gerenciador de JWT
-
 
         return app
 
