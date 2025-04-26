@@ -74,7 +74,8 @@ def listar_Aluno():
                     'nome': aluno['nome'],
                     'cpf': aluno['cpf'],
                     'email': aluno['email'],
-                    'telefone': aluno['telefone']
+                    'telefone': aluno['telefone'],
+                    'Cod_instrutor': aluno['Cod_instrutor']
                 } for aluno in response.data
             ]
             return jsonify(mensagem='lista de alunos', dados=lista_alunos), 200
