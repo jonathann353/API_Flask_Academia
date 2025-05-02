@@ -75,7 +75,10 @@ def listar_Aluno():
                     'cpf': aluno['cpf'],
                     'email': aluno['email'],
                     'telefone': aluno['telefone'],
-                    'Cod_instrutor': aluno['Cod_instrutor']
+                    'Cod_instrutor':aluno['Cod_instrutor'],
+                    'status': aluno['status'],
+                    'data_nascimento': aluno['data_nascimento'],
+                    'sexo': aluno['sexo']
                 } for aluno in response.data
             ]
             return jsonify(mensagem='lista de alunos', dados=lista_alunos), 200
@@ -268,6 +271,8 @@ def atualizar_Aluno(id):
         email = request.json.get('email')
         telefone = request.json.get('telefone')
         Cod_instrutor = request.json.get('Cod_instrutor')
+        status= request.json.get('status')
+       
 
         if not nome or not email or not telefone or not Cod_instrutor:
             return jsonify(message='Campos obrigatórios: nome, email, telefone e Cod_instrutor'), 400
@@ -277,7 +282,8 @@ def atualizar_Aluno(id):
             'nome': nome,
             'email': email,
             'telefone': telefone,
-            'Cod_instrutor': Cod_instrutor
+            'Cod_instrutor': Cod_instrutor,
+            'status':status
         }).eq('cod_aluno', id).execute()
 
         return jsonify(mensagem='Aluno atualizado com sucesso'), 200
