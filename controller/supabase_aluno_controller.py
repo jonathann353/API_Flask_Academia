@@ -372,7 +372,7 @@ def register_user():
         password = data.get('password')
         first_name = data.get('first_name') or ""
         last_name = data.get('last_name') or ""
-        is_superuser = data.get('is_superuser', False)
+        is_superuser = data.get('is_superuser', False)  
 
         if not username or not email or not password:
             return jsonify({"error": "Missing required fields"}), 400
@@ -385,13 +385,13 @@ def register_user():
         # Gerar hash da senha com sha256
         hashed_password = sha256(password.encode('utf-8')).hexdigest()
 
-        # Inserir o novo usuário
+        # Inserir o novo usuário com is_superuser vindo do request
         response = supabase.table("auth_user").insert({
             "username": username,
             "email": email,
             "password": hashed_password,
-            "is_superuser": is_superuser,
-            "is_staff": is_staff,
+            "is_superuser": is_superuser, 
+            "is_staff": is_superuser,      
             "is_active": True,
             "first_name": first_name,
             "last_name": last_name,
