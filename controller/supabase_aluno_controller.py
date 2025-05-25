@@ -372,6 +372,7 @@ def register_user():
         password = data.get('password')
         first_name = data.get('first_name') or ""
         last_name = data.get('last_name') or ""
+        is_superuser = data.get('is_superuser', False)
 
         if not username or not email or not password:
             return jsonify({"error": "Missing required fields"}), 400
