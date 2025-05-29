@@ -357,6 +357,33 @@ def criar_exercicio_treino():
     except Exception as err:
         return jsonify(message=str(err)), 500   
 
+# Nova Rota "/alunos/do/instrutor/id" - método GET
+@MY_APP.route('/alunos/do/instrutor/<int:id>', methods=['GET'])
+# @jwt_required()
+def listar_alunos_por_instrutor(id):
+    try:
+        # Buscar todos os alunos com o Cod_instrutor informado
+        response_alunos = supabase.table('aluno').select("*").eq("Cod_instrutor", id).execute()
+
+        if not response_alunos.data:
+            return jsonify(message='Nenhum aluno vinculado a este instrutor'), 404
+
+        # Construir a lista de alunos
+        lista_alunos = []
+        for aluno in response_alunos.data:
+            lista_alunos.append({
+                'cod_aluno': aluno.get('cod_aluno'),
+                'nome': aluno.get('nome'),
+                'cpf': aluno.get('cpf'),
+                'email': aluno.get('email'),
+                'telefone': aluno.get('telefone'),
+            })
+
+        return jsonify({'instrutor_id': id, 'alunos': lista_alunos}), 200
+
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
+
 # Rota "/aluno/id" - método DELETE exclui o aluno do sistema
 @MY_APP.route('/deletar/aluno/<int:id>', methods=['DELETE'])
 def deletar_Aluno(id):
