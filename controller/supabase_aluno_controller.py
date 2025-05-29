@@ -289,7 +289,73 @@ def atualizar_Aluno(id):
         return jsonify(mensagem='Aluno atualizado com sucesso'), 200
     except Exception as err:
         return jsonify({'message': str(err)}), 500
-    
+        
+ # nova Rota para criar treino do aluno
+@MY_APP.route('/criar/treino/aluno', methods=['POST'])
+def criar_treino_aluno():
+    try:
+        data = request.json
+        # Campos obrigatórios
+        campos_obrigatorios = ['cod_treino', 'tipo_treino', 'cod_aluno', 'cod_instrutor', 'data_inicio']
+        for campo in campos_obrigatorios:
+            if campo not in data:
+                return jsonify(message=f'O campo {campo} é obrigatório'), 400
+
+        # Monta o payload para inserir (campos opcionais com get)
+        novo_treino = {
+            "cod_treino": data['cod_treino'],
+            "tipo_treino": data['tipo_treino'],
+            "cod_aluno": data['cod_aluno'],
+            "cod_instrutor": data['cod_instrutor'],
+            "objetivo": data.get('objetivo', ''),
+            "observacoes": data.get('observacoes', ''),
+            "data_inicio": data['data_inicio'],
+            "data_final": data.get('data_final', None)
+        }
+
+        response = supabase.table('treino').insert(novo_treino).execute()
+
+        if response.status_code == 201 or response.status_code == 200:
+            return jsonify(message='Treino criado com sucesso'), 201
+        else:
+            return jsonify(message='Erro ao criar treino', details=response.data), 400
+
+    except Exception as err:
+        return jsonify(message=str(err)), 500
+
+
+# nova Rota para criar exercício do treino
+@MY_APP.route('/criar/exercicio/treino', methods=['POST'])
+def criar_exercicio_treino():
+    try:
+        data = request.json
+        # Campos obrigatórios
+        campos_obrigatorios = ['Cod_treino', 'nome', 'tipo_treino', 'discricao']
+        for campo in campos_obrigatorios:
+            if campo not in data:
+                return jsonify(message=f'O campo {campo} é obrigatório'), 400
+
+        # Verifica se o treino existe (FK)
+        treino_resp = supabase.table('treino').select('*').eq('cod_treino', data['Cod_treino']).execute()
+        if not treino_resp.data:
+            return jsonify(message='Treino não encontrado para o Cod_treino informado'), 404
+
+        novo_exercicio = {
+            "Cod_treino": data['Cod_treino'],
+            "nome": data['nome'],
+            "tipo_treino": data['tipo_treino'],
+            "discricao": data['discricao']
+        }
+
+        response = supabase.table('exercicio_treino').insert(novo_exercicio).execute()
+
+        if response.status_code == 201 or response.status_code == 200:
+            return jsonify(message='Exercício criado com sucesso'), 201
+        else:
+            return jsonify(message='Erro ao criar exercício', details=response.data), 400
+
+    except Exception as err:
+        return jsonify(message=str(err)), 500   
 
 # Rota "/aluno/id" - método DELETE exclui o aluno do sistema
 @MY_APP.route('/deletar/aluno/<int:id>', methods=['DELETE'])
