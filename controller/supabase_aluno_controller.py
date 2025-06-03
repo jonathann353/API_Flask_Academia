@@ -329,25 +329,28 @@ def criar_treino_aluno():
 def criar_exercicio_treino():
     try:
         data = request.json
-        # Campos obrigatórios
-        campos_obrigatorios = ['Cod_treino', 'nome', 'tipo_treino', 'discricao']
+
+        # Campos obrigatórios conforme tabela 'exercicio'
+        campos_obrigatorios = ['cod_treino', 'tipo_treino', 'serie', 'repeticao', 'intervalo']
         for campo in campos_obrigatorios:
             if campo not in data:
                 return jsonify(message=f'O campo {campo} é obrigatório'), 400
 
         # Verifica se o treino existe (FK)
-        treino_resp = supabase.table('treino').select('*').eq('cod_treino', data['Cod_treino']).execute()
+        treino_resp = supabase.table('treino').select('*').eq('cod_treino', data['cod_treino']).execute()
         if not treino_resp.data:
-            return jsonify(message='Treino não encontrado para o Cod_treino informado'), 404
+            return jsonify(message='Treino não encontrado para o cod_treino informado'), 404
 
+        # Novo exercício baseado nos campos da tabela
         novo_exercicio = {
-            "Cod_treino": data['Cod_treino'],
-            "nome": data['nome'],
+            "cod_treino": data['cod_treino'],
             "tipo_treino": data['tipo_treino'],
-            "discricao": data['discricao']
+            "serie": data['serie'],
+            "repeticao": data['repeticao'],
+            "intervalo": data['intervalo']
         }
 
-        response = supabase.table('exercicio_treino').insert(novo_exercicio).execute()
+        response = supabase.table('exercicio').insert(novo_exercicio).execute()
 
         if response.status_code == 201 or response.status_code == 200:
             return jsonify(message='Exercício criado com sucesso'), 201
@@ -355,7 +358,7 @@ def criar_exercicio_treino():
             return jsonify(message='Erro ao criar exercício', details=response.data), 400
 
     except Exception as err:
-        return jsonify(message=str(err)), 500   
+        return jsonify(message=str(err)), 500
 
 # Nova Rota "/alunos/do/instrutor/id" - método GET
 @MY_APP.route('/alunos/do/instrutor/<int:id>', methods=['GET'])
