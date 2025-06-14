@@ -387,6 +387,44 @@ def listar_alunos_por_instrutor(id):
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
+# Nova Rota "/avaliacao/do/instrutor/id" - método POST
+@MY_APP.route('/avaliacao/do/instrutor/<int:id>', methods=['POST'])
+# @jwt_required()
+def salvar_avaliacao(id):
+    try:
+        data = request.get_json()
+
+        # Validação dos dados obrigatórios
+        campos_obrigatorios = ['cod_aluno', 'data_avaliacao', 'peso', 'altura', 'imc']
+        for campo in campos_obrigatorios:
+            if campo not in data or data[campo] == "":
+                return jsonify({'message': f'O campo {campo} é obrigatório.'}), 400
+
+        # Montar o payload para salvar na tabela de avaliação
+        payload = {
+            'cod_instrutor': id,
+            'cod_aluno': data.get('cod_aluno'),
+            'data_avaliacao': data.get('data_avaliacao'),
+            'peso': float(data.get('peso')),
+            'altura': float(data.get('altura')),
+            'imc': float(data.get('imc')),
+            'observacoes': data.get('observacoes', '')  # Observações é opcional
+        }
+
+        # Inserir no banco (supabase)
+        response = supabase.table('avaliacao_fisica').insert(payload).execute()
+
+        if response.data:
+            return jsonify({
+                'message': 'Avaliação salva com sucesso!',
+                'avaliacao': response.data
+            }), 201
+        else:
+            return jsonify({'message': 'Erro ao salvar avaliação.'}), 500
+
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
+
 # Rota "/aluno/id" - método DELETE exclui o aluno do sistema
 @MY_APP.route('/deletar/aluno/<int:id>', methods=['DELETE'])
 def deletar_Aluno(id):
