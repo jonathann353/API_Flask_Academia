@@ -425,6 +425,34 @@ def salvar_avaliacao(id):
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
+# Rota "/avaliacoes/do/aluno/<id>" - método GET
+@MY_APP.route('/avaliacoes/do/aluno/<int:cod_aluno>', methods=['GET'])
+# @jwt_required()  # Descomente se estiver usando autenticação JWT
+def buscar_avaliacoes(cod_aluno):
+    try:
+        # Consulta no Supabase as avaliações do aluno específico
+        response = supabase.table('avaliacao_fisica') \
+            .select('*') \
+            .eq('cod_aluno', cod_aluno) \
+            .order('data_avaliacao', desc=True) \
+            .execute()
+
+        avaliacoes = response.data
+
+        if not avaliacoes:
+            return jsonify({
+                'message': 'Nenhuma avaliação encontrada para este aluno.',
+                'avaliacoes': []
+            }), 404
+
+        return jsonify({
+            'message': 'Avaliações encontradas com sucesso.',
+            'avaliacoes': avaliacoes
+        }), 200
+
+    except Exception as err:
+        return jsonify({'message': f'Erro ao buscar avaliações: {str(err)}'}), 500
+        
 # Rota "/aluno/id" - método DELETE exclui o aluno do sistema
 @MY_APP.route('/deletar/aluno/<int:id>', methods=['DELETE'])
 def deletar_Aluno(id):
