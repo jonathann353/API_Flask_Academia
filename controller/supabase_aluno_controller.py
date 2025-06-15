@@ -260,7 +260,37 @@ def detalhes_Treino_Aluno(id):
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
-   
+
+@MY_APP.route('/atualizar/treino/<int:cod_treino>', methods=['PUT'])
+def atualizar_treino(cod_treino):
+    try:
+        dados = request.json
+
+        if not cod_treino:
+            return jsonify({'message': 'O código do treino é obrigatório'}), 400
+
+        # Campos que podem ser atualizados
+        campos_permitidos = [
+            'tipo_treino', 'cod_aluno', 'cod_instrutor',
+            'objetivo', 'observacoes', 'data_inicio',
+            'data_final', 'conclusao'
+        ]
+
+        dados_update = {campo: dados[campo] for campo in campos_permitidos if campo in dados}
+
+        if not dados_update:
+            return jsonify({'message': 'Nenhum dado válido para atualizar'}), 400
+
+        # Executa o update no Supabase
+        response = supabase.table('treino').update(dados_update).eq('cod_treino', cod_treino).execute()
+
+        if response.data:
+            return jsonify({'message': 'Treino atualizado com sucesso!', 'dados': response.data}), 200
+        else:
+            return jsonify({'message': 'Treino não encontrado ou não atualizado'}), 404
+
+    except Exception as err:
+        return jsonify({'message': f'Erro ao atualizar treino: {str(err)}'}), 500
     
 # Rota "/aluno/id" - método PUT atualiza os dados do aluno
 @MY_APP.route('/atualizar/aluno/<int:id>', methods=['PUT'])
