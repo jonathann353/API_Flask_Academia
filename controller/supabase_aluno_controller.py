@@ -225,34 +225,63 @@ def detalhes_Treino_Aluno(id):
         if not id:
             return jsonify(message='Campo id é obrigatório'), 400
 
-        # Consulta os treinos do aluno
+        # 🔍 Buscar dados do aluno
+        response_aluno = supabase.table('aluno').select('nome').eq('cod_aluno', id).execute()
+        if not response_aluno.data:
+            return jsonify(message='Aluno não encontrado'), 404
+
+        nome_aluno = response_aluno.data[0]['nome']
+
+        # 🔍 Buscar treinos do aluno
         response_treino = supabase.table('treino').select('*').eq('cod_aluno', id).execute()
         if not response_treino.data:
             return jsonify(message='Treinos não encontrados'), 404
 
         treinos = response_treino.data
 
-        # Pega o nome do aluno
-        response_aluno = supabase.table('aluno').select('nome').eq('cod_aluno', id).execute()
-        nome_aluno = response_aluno.data[0]['nome'] if response_aluno.data else 'Não informado'
-
         resultado = []
+
         for treino in treinos:
+            cod_treino = treino.get('cod_treino')
             cod_instrutor = treino.get('cod_instrutor')
+
+            # 🔍 Buscar nome do instrutor
             if cod_instrutor:
                 response_instrutor = supabase.table('instrutor').select('nome').eq('cod_instrutor', cod_instrutor).execute()
                 nome_instrutor = response_instrutor.data[0]['nome'] if response_instrutor.data else 'Não informado'
             else:
                 nome_instrutor = 'Não informado'
 
+            # 🔍 Buscar exercícios vinculados a este treino
+            response_exercicios = supabase.table('exercicio').select('*').eq('cod_treino', cod_treino).execute()
+            exercicios = response_exercicios.data if response_exercicios.data else []
+
+            lista_exercicios = []
+            for ex in exercicios:
+                lista_exercicios.append({
+                    'cod_exercicio': ex.get('cod_exercicio'),
+                    'serie': ex.get('serie'),
+                    'repeticao': ex.get('repeticao'),
+                    'tipo_treino': ex.get('tipo_treino'),
+                    'intervalo': ex.get('intervalo'),
+                    'concluido': ex.get('concluido')
+                })
+
+            # 🔍 Verificar se TODOS os exercícios estão concluídos
+            treino_concluido = all(ex.get('concluido') for ex in exercicios) if exercicios else False
+
             resultado.append({
                 'nome_aluno': nome_aluno,
                 'nome_instrutor': nome_instrutor,
                 'treino': {
+                    'cod_treino': cod_treino,
                     'tipo_treino': treino.get('tipo_treino'),
-                    'exercicio': treino.get('exercicio'),
-                    'serie': treino.get('serie'),
-                    'repeticao': treino.get('repeticao')
+                    'objetivo': treino.get('objetivo'),
+                    'observacoes': treino.get('observacoes'),
+                    'data_inicio': treino.get('data_inicio'),
+                    'data_final': treino.get('data_final'),
+                    'treino_concluido': treino_concluido,
+                    'exercicios': lista_exercicios
                 }
             })
 
@@ -260,6 +289,7 @@ def detalhes_Treino_Aluno(id):
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
+
 
 @MY_APP.route('/atualizar/treino/<int:cod_treino>', methods=['PUT'])
 def atualizar_treino(cod_treino):
