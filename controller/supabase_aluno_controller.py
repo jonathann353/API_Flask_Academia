@@ -455,9 +455,9 @@ def salvar_avaliacao(id):
         data = request.get_json()
 
         # Validação dos dados obrigatórios
-        campos_obrigatorios = ['cod_aluno', 'data_avaliacao', 'peso', 'altura', 'imc']
+        campos_obrigatorios = ['cod_aluno', 'data_avaliacao', 'peso', 'altura', 'imc', 'meta']
         for campo in campos_obrigatorios:
-            if campo not in data or data[campo] == "":
+            if campo not in data or data[campo] == "" or data[campo] is None:
                 return jsonify({'message': f'O campo {campo} é obrigatório.'}), 400
 
         # Montar o payload para salvar na tabela de avaliação
@@ -468,6 +468,7 @@ def salvar_avaliacao(id):
             'peso': float(data.get('peso')),
             'altura': float(data.get('altura')),
             'imc': float(data.get('imc')),
+            'meta': data.get('meta'),
             'observacoes': data.get('observacoes', '')  # Observações é opcional
         }
 
