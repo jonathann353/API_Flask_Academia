@@ -64,6 +64,7 @@ def criar_administrador():
 #rota "/" raiz da aplicação lista os alunos cadastrados no sistema
 @MY_APP.route('/listar/aluno', methods=['GET'])
 #@jwt_required()
+
 def listar_Aluno():
     try:
         response = supabase.table('aluno').select("*").execute()
@@ -356,7 +357,7 @@ def criar_treino_aluno():
     try:
         data = request.json
         # Campos obrigatórios
-        campos_obrigatorios = ['cod_treino', 'tipo_treino', 'cod_aluno', 'cod_instrutor', 'data_inicio']
+        campos_obrigatorios = ['cod_treino', 'tipo_treino', 'cod_aluno', 'cod_instrutor', 'data_inicio', 'dia_semana']
         for campo in campos_obrigatorios:
             if campo not in data:
                 return jsonify(message=f'O campo {campo} é obrigatório'), 400
@@ -370,7 +371,8 @@ def criar_treino_aluno():
             "objetivo": data.get('objetivo', ''),
             "observacoes": data.get('observacoes', ''),
             "data_inicio": data['data_inicio'],
-            "data_final": data.get('data_final', None)
+            "data_final": data.get('data_final', None),
+            "dia_semana": data.get('dia_semana', '')
         }
 
         response = supabase.table('treino').insert(novo_treino).execute()
