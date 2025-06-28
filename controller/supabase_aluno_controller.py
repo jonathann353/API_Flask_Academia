@@ -450,9 +450,9 @@ def listar_alunos_por_instrutor(id):
         return jsonify({'message': str(err)}), 500
 
 # Nova Rota "/avaliacao/do/instrutor/id" - método POST
-@MY_APP.route('/avaliacao/do/instrutor/<int:id>', methods=['POST'])
+@MY_APP.route('/avaliacao/do/instrutor/<int:cod_instrutor>', methods=['POST'])
 # @jwt_required()
-def salvar_avaliacao(id):
+def salvar_avaliacao(cod_instrutor):
     try:
         data = request.get_json()
 
@@ -464,7 +464,7 @@ def salvar_avaliacao(id):
 
         # Montar o payload para salvar na tabela de avaliação
         payload = {
-            'cod_instrutor': id,
+            'cod_instrutor':cod_instrutor,
             'cod_aluno': data.get('cod_aluno'),
             'data_avaliacao': data.get('data_avaliacao'),
             'peso': float(data.get('peso')),
