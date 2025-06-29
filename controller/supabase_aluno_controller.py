@@ -135,10 +135,10 @@ def inserir_Aluno():
     aluno = request.json
     try:
         # Valida se os campos obrigatórios estão presentes
-        campos_obrigatorios = ['nome', 'cpf', 'email', 'telefone','status','data_nascimento', 'sexo']
+        campos_obrigatorios = ['nome', 'cpf', 'email', 'telefone','status','data_nascimento', 'sexo', 'Cod_plano' ]
         valido, mensagem = validar_campos(campos_obrigatorios, aluno)
         if not valido:
-            return jsonify("Campos Obrigatórios: 'nome', 'cpf', 'email', 'telefone', 'status','data_nascimento', 'sexo'"), 400
+            return jsonify("Campos Obrigatórios: 'nome', 'cpf', 'email', 'telefone', 'status','data_nascimento', 'sexo', 'Cod_plano'"), 400
 
         # Inserir o novo aluno na tabela "aluno" do Supabase
         response = supabase.table('aluno').insert({
@@ -149,7 +149,8 @@ def inserir_Aluno():
             'Cod_instrutor':aluno['Cod_instrutor'],
             'status': aluno['status'],
             'data_nascimento': aluno['data_nascimento'],
-            'sexo': aluno['sexo']
+            'sexo': aluno['sexo'],
+            'Cod_plano': aluno['Cod_plano']
         }).execute()
         return jsonify({'message': 'aluno inserido com sucesso'}), 200
     except Exception as err:
