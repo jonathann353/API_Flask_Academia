@@ -378,10 +378,10 @@ def criar_treino_aluno():
 
         response = supabase.table('treino').insert(novo_treino).execute()
 
-        if response.status_code == 201 or response.status_code == 200:
+        if response.error is None:
             return jsonify(message='Treino criado com sucesso'), 201
         else:
-            return jsonify(message='Erro ao criar treino', details=response.data), 400
+            return jsonify(message='Erro ao criar treino', details=str(response.error)), 400
 
     except Exception as err:
         return jsonify(message=str(err)), 500
@@ -415,7 +415,7 @@ def criar_exercicio_treino():
 
         response = supabase.table('exercicio').insert(novo_exercicio).execute()
 
-        if response.status_code == 201 or response.status_code == 200:
+        if response.error is None:
             return jsonify(message='Exercício criado com sucesso'), 201
         else:
             return jsonify(message='Erro ao criar exercício', details=response.data), 400
