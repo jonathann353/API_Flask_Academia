@@ -264,7 +264,7 @@ def detalhes_Treino_Aluno(id):
                     'cod_exercicio': ex.get('cod_exercicio'),
                     'serie': ex.get('serie'),
                     'repeticao': ex.get('repeticao'),
-                    'tipo_treino': ex.get('tipo_treino'),
+                    'exercicio': ex.get('exercicio'),
                     'intervalo': ex.get('intervalo'),
                     'concluido': ex.get('concluido')
                 })
