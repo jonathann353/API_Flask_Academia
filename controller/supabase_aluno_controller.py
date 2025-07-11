@@ -394,7 +394,7 @@ def criar_exercicio_treino():
         data = request.json
 
         # Campos obrigatórios conforme tabela 'exercicio'
-        campos_obrigatorios = ['cod_treino', 'tipo_treino', 'serie', 'repeticao', 'intervalo']
+        campos_obrigatorios = ['cod_treino', 'exercicio', 'serie', 'repeticao', 'intervalo']
         for campo in campos_obrigatorios:
             if campo not in data:
                 return jsonify(message=f'O campo {campo} é obrigatório'), 400
@@ -407,7 +407,7 @@ def criar_exercicio_treino():
         # Novo exercício baseado nos campos da tabela
         novo_exercicio = {
             "cod_treino": data['cod_treino'],
-            "tipo_treino": data['tipo_treino'],
+            "exercicio": data['exercicio'],
             "serie": data['serie'],
             "repeticao": data['repeticao'],
             "intervalo": data['intervalo']
