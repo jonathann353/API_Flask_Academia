@@ -417,7 +417,7 @@ def criar_exercicio_treino():
         response = supabase.table('exercicio').insert(novo_exercicio).execute()
 
         # Validação correta do retorno
-        if response.data and response.status_code in (200, 201):
+        if response.data:
             return jsonify(message='Exercício criado com sucesso', data=response.data), 201
         else:
             return jsonify(message='Erro ao criar exercício', details=response.__dict__), 400
