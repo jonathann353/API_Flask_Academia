@@ -394,7 +394,7 @@ def criar_exercicio_treino():
         data = request.json
 
         # Campos obrigatórios conforme tabela 'exercicio'
-        campos_obrigatorios = ['cod_treino', 'exercicio', 'serie', 'repeticao', 'intervalo']
+        campos_obrigatorios = ['cod_treino', 'exercicio', 'serie', 'repeticao', 'intervalo', 'carga']
         for campo in campos_obrigatorios:
             if campo not in data:
                 return jsonify(message=f'O campo {campo} é obrigatório'), 400
@@ -410,7 +410,8 @@ def criar_exercicio_treino():
             "exercicio": data['exercicio'],
             "serie": data['serie'],
             "repeticao": data['repeticao'],
-            "intervalo": data['intervalo']
+            "intervalo": data['intervalo'],
+            "carga":data['carga']
         }
 
         response = supabase.table('exercicio').insert(novo_exercicio).execute()
