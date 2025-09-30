@@ -387,7 +387,7 @@ def criar_treino_aluno():
         return jsonify(message=str(err)), 500
 
 
-# nova Rota para criar exercício do treino
+# Nova Rota para criar exercício do treino
 @MY_APP.route('/criar/exercicio/treino', methods=['POST'])
 def criar_exercicio_treino():
     try:
@@ -411,18 +411,19 @@ def criar_exercicio_treino():
             "serie": data['serie'],
             "repeticao": data['repeticao'],
             "intervalo": data['intervalo'],
-            "carga":data['carga']
+            "carga": data['carga']
         }
 
         response = supabase.table('exercicio').insert(novo_exercicio).execute()
 
-        if response.error is None:
-            return jsonify(message='Exercício criado com sucesso'), 201
+        # Validação correta do retorno
+        if response.data and response.status_code in (200, 201):
+            return jsonify(message='Exercício criado com sucesso', data=response.data), 201
         else:
-            return jsonify(message='Erro ao criar exercício', details=response.data), 400
+            return jsonify(message='Erro ao criar exercício', details=response.__dict__), 400
 
     except Exception as err:
-        return jsonify(message=str(err)), 500
+        return jsonify(message=f'Erro interno: {str(err)}'), 500
 
 # Nova Rota "/alunos/do/instrutor/id" - método GET
 @MY_APP.route('/alunos/do/instrutor/<int:id>', methods=['GET'])
