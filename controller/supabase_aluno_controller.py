@@ -283,6 +283,7 @@ def detalhes_Treino_Aluno(id):
                     'observacoes': treino.get('observacoes'),
                     'data_inicio': treino.get('data_inicio'),
                     'data_final': treino.get('data_final'),
+                    'dia_semana': treino.get('dia_semana'),
                     'treino_concluido': treino_concluido,
                     'exercicios': lista_exercicios
                 }
