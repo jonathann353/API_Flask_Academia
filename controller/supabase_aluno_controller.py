@@ -353,7 +353,36 @@ def atualizar_Aluno(id):
         return jsonify(mensagem='Aluno atualizado com sucesso'), 200
     except Exception as err:
         return jsonify({'message': str(err)}), 500
-        
+
+# Rota "/atualizar/aluno/id" - método PATCH atualiza apenas os campos enviados
+@MY_APP.route('/atualizar/aluno/<int:cod_aluno>', methods=['PATCH'])
+# @jwt_required()
+def atualizar_aluno_parcial(cod_aluno):
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify(mensagem="Nenhum dado enviado para atualização"), 400
+
+        # Atualiza apenas os campos enviados no JSON
+        response = (
+            supabase.table('aluno')
+            .update(data)
+            .eq('cod_aluno', cod_aluno)
+            .execute()
+        )
+
+        if not response.data:
+            return jsonify(mensagem="Aluno não encontrado ou sem alterações"), 404
+
+        return jsonify(
+            mensagem="Aluno atualizado com sucesso",
+            aluno=response.data[0]
+        ), 200
+
+    except Exception as err:
+        return jsonify({'erro': str(err)}), 500
+
  # nova Rota para criar treino do aluno
 @MY_APP.route('/criar/treino/aluno', methods=['POST'])
 def criar_treino_aluno():
