@@ -73,6 +73,7 @@ def listar_Aluno():
                 {
                     'cod_aluno': aluno['cod_aluno'],
                     'nome': aluno['nome'],
+                    'sobrenome':aluno['sobrenome'],
                     'cpf': aluno['cpf'],
                     'email': aluno['email'],
                     'telefone': aluno['telefone'],
@@ -135,14 +136,15 @@ def inserir_Aluno():
     aluno = request.json
     try:
         # Valida se os campos obrigatórios estão presentes
-        campos_obrigatorios = ['nome', 'cpf', 'email', 'telefone','status','data_nascimento', 'sexo', 'Cod_plano' ]
+        campos_obrigatorios = ['nome', 'sobrenome', 'cpf', 'email', 'telefone','status','data_nascimento', 'sexo', 'Cod_plano' ]
         valido, mensagem = validar_campos(campos_obrigatorios, aluno)
         if not valido:
-            return jsonify("Campos Obrigatórios: 'nome', 'cpf', 'email', 'telefone', 'status','data_nascimento', 'sexo', 'Cod_plano'"), 400
+            return jsonify("Campos Obrigatórios: 'nome', 'sobrenome', 'cpf', 'email', 'telefone', 'status','data_nascimento', 'sexo', 'Cod_plano'"), 400
 
         # Inserir o novo aluno na tabela "aluno" do Supabase
         response = supabase.table('aluno').insert({
             'nome': aluno["nome"],
+            'sobrenome':aluno["sobrenome"],
             'cpf': aluno["cpf"],
             'email':aluno['email'],
             'telefone': aluno["telefone"],
@@ -171,6 +173,7 @@ def buscar_Aluno(id):
         if response.data:
             aluno = [{'cod_aluno': aluno['cod_aluno'],
                 'nome': aluno['nome'],
+                'sobrenome':aluno['sobrenome'],
                 'cpf': aluno['cpf'],
                 'email': aluno['email'],
                 'telefone': aluno['telefone'],
@@ -206,6 +209,7 @@ def detalhes_Aluno_e_Instrutores(id):
 
         return jsonify({
             'nome_aluno': aluno['nome'],
+            'sobrenome': aluno['sobrenome'],
             'cpf_aluno': aluno['cpf'],
             'email_aluno': aluno['email'],
             'telefone_aluno': aluno['telefone'],
@@ -332,6 +336,7 @@ def atualizar_exercicio(cod_exercicio):
 def atualizar_Aluno(id):
     try:
         nome = request.json.get('nome')
+        sobrenome = request.json.get('sobrenome')
         email = request.json.get('email')
         telefone = request.json.get('telefone')
         Cod_instrutor = request.json.get('Cod_instrutor')
@@ -339,11 +344,12 @@ def atualizar_Aluno(id):
        
 
         if not nome or not email or not telefone or not Cod_instrutor:
-            return jsonify(message='Campos obrigatórios: nome, email, telefone e Cod_instrutor'), 400
+            return jsonify(message='Campos obrigatórios: nome, sobrenome, email, telefone e Cod_instrutor'), 400
 
         # Atualizar no Supabase
         response = supabase.table('aluno').update({
             'nome': nome,
+            'sobrenome': sobrenome,
             'email': email,
             'telefone': telefone,
             'Cod_instrutor': Cod_instrutor,
@@ -473,6 +479,7 @@ def listar_alunos_por_instrutor(id):
             lista_alunos.append({
                 'cod_aluno': aluno.get('cod_aluno'),
                 'nome': aluno.get('nome'),
+                'sobrenome': aluno.get('sobrenome'),
                 'cpf': aluno.get('cpf'),
                 'email': aluno.get('email'),
                 'telefone': aluno.get('telefone'),
