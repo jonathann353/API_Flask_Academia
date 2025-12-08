@@ -12,6 +12,7 @@ from datetime import datetime
 from datetime import timedelta
 import jwt
 import os
+import re
 
 MY_APP = Blueprint('MY_APP', __name__)
 
@@ -129,34 +130,54 @@ def inserir_Instrutor():
     except Exception as err:
         return jsonify({'message': str(err)}), 500
     
-# Rota "/aluno" - método POST adiciona um novo aluno no sistema
 @MY_APP.route('/inserir/aluno', methods=['POST'])
-#@jwt_required()  # Habilita a verificação do token JWT
 def inserir_Aluno():
     aluno = request.json
+
     try:
-        # Valida se os campos obrigatórios estão presentes
-        campos_obrigatorios = ['nome', 'sobrenome', 'cpf', 'email', 'telefone','status','data_nascimento', 'sexo', 'Cod_plano' ]
+        campos_obrigatorios = [
+            'nome', 'sobrenome', 'documento', 'email',
+            'telefone','status','data_nascimento',
+            'sexo', 'Cod_plano'
+        ]
+
         valido, mensagem = validar_campos(campos_obrigatorios, aluno)
         if not valido:
-            return jsonify("Campos Obrigatórios: 'nome', 'sobrenome', 'cpf', 'email', 'telefone', 'status','data_nascimento', 'sexo', 'Cod_plano'"), 400
+            return jsonify({'erro': mensagem}), 400
 
-        # Inserir o novo aluno na tabela "aluno" do Supabase
-        response = supabase.table('aluno').insert({
+        documento = aluno['documento']
+
+        if not validar_documento(documento):
+            return jsonify({'erro': 'CPF ou CNPJ inválido'}), 400
+
+        documento_limpo = somente_numeros(documento)
+
+        # ✅ Verificar duplicidade
+        existente = supabase.table('aluno') \
+            .select('id') \
+            .eq('documento', documento_limpo) \
+            .execute()
+
+        if existente.data:
+            return jsonify({'erro': 'Documento já cadastrado'}), 409
+
+        supabase.table('aluno').insert({
             'nome': aluno["nome"],
-            'sobrenome':aluno["sobrenome"],
-            'cpf': aluno["cpf"],
-            'email':aluno['email'],
+            'sobrenome': aluno["sobrenome"],
+            'documento': documento_limpo,
+            'email': aluno['email'],
             'telefone': aluno["telefone"],
-            'Cod_instrutor':aluno['Cod_instrutor'],
+            'Cod_instrutor': aluno.get('Cod_instrutor'),
             'status': aluno['status'],
             'data_nascimento': aluno['data_nascimento'],
             'sexo': aluno['sexo'],
             'Cod_plano': aluno['Cod_plano']
         }).execute()
-        return jsonify({'message': 'aluno inserido com sucesso'}), 200
+
+        return jsonify({'message': 'Aluno inserido com sucesso'}), 201
+
     except Exception as err:
-        return jsonify({'message': str(err)}), 500
+        return jsonify({'erro': str(err)}), 500
     
     
 # Rota "/aluno/id" - método GET busca no sistema pelo id do aluno
@@ -680,3 +701,49 @@ def protected():
         return jsonify(f'Logado como: {current_user}'), 200
     except Exception as err:
         return jsonify({'message': str(err)}), 500
+
+
+# validação cpf/cnpj
+def somente_numeros(valor):
+    return re.sub(r'\D', '', valor)
+
+
+def validar_cpf(cpf):
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return False
+
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    digito1 = (soma * 10 % 11) % 10
+
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    digito2 = (soma * 10 % 11) % 10
+
+    return cpf[-2:] == f"{digito1}{digito2}"
+
+
+def validar_cnpj(cnpj):
+    if len(cnpj) != 14 or cnpj == cnpj[0] * 14:
+        return False
+
+    pesos1 = [5,4,3,2,9,8,7,6,5,4,3,2]
+    pesos2 = [6] + pesos1
+
+    soma1 = sum(int(cnpj[i]) * pesos1[i] for i in range(12))
+    digito1 = 11 - (soma1 % 11)
+    digito1 = 0 if digito1 >= 10 else digito1
+
+    soma2 = sum(int(cnpj[i]) * pesos2[i] for i in range(13))
+    digito2 = 11 - (soma2 % 11)
+    digito2 = 0 if digito2 >= 10 else digito2
+
+    return cnpj[-2:] == f"{digito1}{digito2}"
+
+
+def validar_documento(documento):
+    doc = somente_numeros(documento)
+
+    if len(doc) == 11:
+        return validar_cpf(doc)
+    elif len(doc) == 14:
+        return validar_cnpj(doc)
+    return False
