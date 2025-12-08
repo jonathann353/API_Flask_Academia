@@ -75,7 +75,7 @@ def listar_Aluno():
                     'cod_aluno': aluno['cod_aluno'],
                     'nome': aluno['nome'],
                     'sobrenome':aluno['sobrenome'],
-                    'cpf': aluno['cpf'],
+                    'documento': aluno['documento'],
                     'email': aluno['email'],
                     'telefone': aluno['telefone'],
                     'Cod_instrutor':aluno['Cod_instrutor'],
@@ -148,7 +148,7 @@ def inserir_Aluno():
         documento = aluno['documento']
 
         if not validar_documento(documento):
-            return jsonify({'erro': 'CPF ou CNPJ inválido'}), 400
+            return jsonify({'erro': ' ou CNPJ inválido'}), 400
 
         documento_limpo = somente_numeros(documento)
 
@@ -198,7 +198,7 @@ def buscar_Aluno(id):
             aluno = [{'cod_aluno': aluno['cod_aluno'],
                 'nome': aluno['nome'],
                 'sobrenome':aluno['sobrenome'],
-                'cpf': aluno['cpf'],
+                'documento': aluno['documento'],
                 'email': aluno['email'],
                 'telefone': aluno['telefone'],
                 'Cod_instrutor':aluno['Cod_instrutor'],
@@ -234,7 +234,7 @@ def detalhes_Aluno_e_Instrutores(id):
         return jsonify({
             'nome_aluno': aluno['nome'],
             'sobrenome': aluno['sobrenome'],
-            'cpf_aluno': aluno['cpf'],
+            'cpf_aluno': aluno['documento'],
             'email_aluno': aluno['email'],
             'telefone_aluno': aluno['telefone'],
             'instrutor': {
@@ -504,7 +504,7 @@ def listar_alunos_por_instrutor(id):
                 'cod_aluno': aluno.get('cod_aluno'),
                 'nome': aluno.get('nome'),
                 'sobrenome': aluno.get('sobrenome'),
-                'cpf': aluno.get('cpf'),
+                'cpf': aluno.get('documento'),
                 'email': aluno.get('email'),
                 'telefone': aluno.get('telefone'),
             })
@@ -715,13 +715,13 @@ def validar_cpf(cpf):
     if len(cpf) != 11 or cpf == cpf[0] * 11:
         return False
 
-    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    soma = sum(int([i]) * (10 - i) for i in range(9))
     digito1 = (soma * 10 % 11) % 10
 
-    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    soma = sum(int([i]) * (11 - i) for i in range(10))
     digito2 = (soma * 10 % 11) % 10
 
-    return cpf[-2:] == f"{digito1}{digito2}"
+    return [-2:] == f"{digito1}{digito2}"
 
 
 def validar_cnpj(cnpj):
@@ -746,7 +746,7 @@ def validar_documento(documento):
     doc = somente_numeros(documento)
 
     if len(doc) == 11:
-        return validar_cpf(doc)
+        return validar_(doc)
     elif len(doc) == 14:
         return validar_cnpj(doc)
     return False
