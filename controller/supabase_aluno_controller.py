@@ -706,7 +706,7 @@ def protected():
         return jsonify({'message': str(err)}), 500
 
 
-# validação cpf/cnpj
+# Remove tudo que não for número
 def somente_numeros(valor):
     return re.sub(r'\D', '', valor)
 
@@ -715,20 +715,22 @@ def validar_cpf(cpf):
     if len(cpf) != 11 or cpf == cpf[0] * 11:
         return False
 
-    soma = sum(int([i]) * (10 - i) for i in range(9))
+    # Primeiro dígito
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
     digito1 = (soma * 10 % 11) % 10
 
-    soma = sum(int([i]) * (11 - i) for i in range(10))
+    # Segundo dígito
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
     digito2 = (soma * 10 % 11) % 10
 
-    return [-2:] == f"{digito1}{digito2}"
+    return cpf[-2:] == f"{digito1}{digito2}"
 
 
 def validar_cnpj(cnpj):
     if len(cnpj) != 14 or cnpj == cnpj[0] * 14:
         return False
 
-    pesos1 = [5,4,3,2,9,8,7,6,5,4,3,2]
+    pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
     pesos2 = [6] + pesos1
 
     soma1 = sum(int(cnpj[i]) * pesos1[i] for i in range(12))
@@ -746,7 +748,7 @@ def validar_documento(documento):
     doc = somente_numeros(documento)
 
     if len(doc) == 11:
-        return validar_(doc)
+        return validar_cpf(doc)
     elif len(doc) == 14:
         return validar_cnpj(doc)
     return False
