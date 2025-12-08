@@ -154,7 +154,7 @@ def inserir_Aluno():
 
         # ✅ Verificar duplicidade
         existente = supabase.table('aluno') \
-            .select('id') \
+            .select('cod_aluno') \
             .eq('documento', documento_limpo) \
             .execute()
 
