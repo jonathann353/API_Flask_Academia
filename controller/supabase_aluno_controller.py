@@ -10,6 +10,7 @@ from supabase import create_client, Client
 import logging
 from datetime import datetime
 from datetime import timedelta
+from random import randint
 import uuid
 import jwt
 import os
@@ -424,8 +425,16 @@ def criar_treino_aluno():
             if not data.get(c):
                 return jsonify(message=f"Campo {c} é obrigatório"), 400
 
-        # usa o cod_treino se vier do Django, senão cria um UUID
-        cod_treino = data.get("cod_treino") or str(uuid.uuid4())
+        # usa o cod_treino se vier do payload, senão cria um inteiro aleatório
+        cod_treino = data.get("cod_treino")
+        if cod_treino is None:
+            # Gera um inteiro aleatório (em produção, use auto-increment do DB)
+            cod_treino = randint(100000, 999999)
+        else:
+            try:
+                cod_treino = int(cod_treino)
+            except ValueError:
+                return jsonify(message="cod_treino deve ser um número inteiro"), 400
 
         treino = {
             "cod_treino": cod_treino,
@@ -446,6 +455,7 @@ def criar_treino_aluno():
     except Exception as e:
         return jsonify(message=f"Erro interno: {e}"), 500
 
+
 @MY_APP.route('/criar/exercicio/treino', methods=['POST'])
 def criar_exercicio_treino():
     try:
@@ -463,9 +473,14 @@ def criar_exercicio_treino():
                 if ex.get(campo) in [None, ""]:
                     return jsonify(message=f"O campo {campo} é obrigatório"), 400
 
-            ex["serie"] = int(ex["serie"])
-            ex["repeticao"] = int(ex["repeticao"])
-            ex["carga"] = float(ex["carga"])
+            # converte tipos
+            try:
+                ex["cod_treino"] = int(ex["cod_treino"])
+                ex["serie"] = int(ex["serie"])
+                ex["repeticao"] = int(ex["repeticao"])
+                ex["carga"] = float(ex["carga"])
+            except ValueError as ve:
+                return jsonify(message=f"Erro de conversão de tipo: {ve}"), 400
 
         supabase.table("exercicio").insert(lista).execute()
 
