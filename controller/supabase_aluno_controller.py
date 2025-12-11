@@ -413,34 +413,40 @@ def atualizar_aluno_parcial(cod_aluno):
     except Exception as err:
         return jsonify({'erro': str(err)}), 500
 
- # nova Rota para criar treino do aluno
 @MY_APP.route('/criar/treino/aluno', methods=['POST'])
 def criar_treino_aluno():
     try:
         data = request.json
-        # Campos obrigatórios
-        campos_obrigatorios = ['cod_treino', 'tipo_treino', 'cod_aluno', 'cod_instrutor', 'data_inicio', 'dia_semana']
+
+        # Gera cod_treino automaticamente se não vier no payload
+        cod_treino = data.get('cod_treino')
+        if not cod_treino:
+            cod_treino = str(int(datetime.now().timestamp()))  # Ex: "1733874550"
+
+        campos_obrigatorios = ['tipo_treino', 'cod_aluno', 'cod_instrutor', 'data_inicio', 'dia_semana']
         for campo in campos_obrigatorios:
             if campo not in data:
                 return jsonify(message=f'O campo {campo} é obrigatório'), 400
 
-        # Monta o payload para inserir (campos opcionais com get)
         novo_treino = {
-            "cod_treino": data['cod_treino'],
+            "cod_treino": cod_treino,
             "tipo_treino": data['tipo_treino'],
             "cod_aluno": data['cod_aluno'],
             "cod_instrutor": data['cod_instrutor'],
             "objetivo": data.get('objetivo', ''),
             "observacoes": data.get('observacoes', ''),
             "data_inicio": data['data_inicio'],
-            "data_final": data.get('data_final', None),
-            "dia_semana": data.get('dia_semana', '')
+            "data_final": data.get('data_final'),
+            "dia_semana": data['dia_semana']
         }
 
         response = supabase.table('treino').insert(novo_treino).execute()
 
         if response.error is None:
-            return jsonify(message='Treino criado com sucesso'), 201
+            return jsonify(
+                message='Treino criado com sucesso',
+                cod_treino=cod_treino
+            ), 201
         else:
             return jsonify(message='Erro ao criar treino', details=str(response.error)), 400
 
@@ -448,43 +454,41 @@ def criar_treino_aluno():
         return jsonify(message=str(err)), 500
 
 
-# Nova Rota para criar exercício do treino
+
 @MY_APP.route('/criar/exercicio/treino', methods=['POST'])
 def criar_exercicio_treino():
     try:
         data = request.json
+        lista = data.get("exercicios", [])
 
-        # Campos obrigatórios conforme tabela 'exercicio'
-        campos_obrigatorios = ['cod_treino', 'exercicio', 'serie', 'repeticao', 'intervalo', 'carga']
-        for campo in campos_obrigatorios:
-            if campo not in data:
-                return jsonify(message=f'O campo {campo} é obrigatório'), 400
+        if not lista:
+            return jsonify(message="Nenhum exercício recebido"), 400
 
-        # Verifica se o treino existe (FK)
-        treino_resp = supabase.table('treino').select('*').eq('cod_treino', data['cod_treino']).execute()
-        if not treino_resp.data:
-            return jsonify(message='Treino não encontrado para o cod_treino informado'), 404
+        inserts = []
+        for ex in lista:
+            campos = ['cod_treino', 'exercicio', 'serie', 'repeticao', 'intervalo', 'carga']
+            for campo in campos:
+                if campo not in ex:
+                    return jsonify(message=f"O campo {campo} é obrigatório"), 400
 
-        # Novo exercício baseado nos campos da tabela
-        novo_exercicio = {
-            "cod_treino": data['cod_treino'],
-            "exercicio": data['exercicio'],
-            "serie": data['serie'],
-            "repeticao": data['repeticao'],
-            "intervalo": data['intervalo'],
-            "carga": data['carga']
-        }
+            inserts.append({
+                "cod_treino": ex["cod_treino"],
+                "exercicio": ex["exercicio"],
+                "serie": ex["serie"],
+                "repeticao": ex["repeticao"],
+                "intervalo": ex["intervalo"],
+                "carga": ex["carga"],
+            })
 
-        response = supabase.table('exercicio').insert(novo_exercicio).execute()
+        response = supabase.table('exercicio').insert(inserts).execute()
 
-        # Validação correta do retorno
-        if response.data:
-            return jsonify(message='Exercício criado com sucesso', data=response.data), 201
-        else:
-            return jsonify(message='Erro ao criar exercício', details=response.__dict__), 400
+        if response.error:
+            return jsonify(message="Erro ao inserir exercícios", details=str(response.error)), 400
+
+        return jsonify(message="Exercícios criados com sucesso"), 201
 
     except Exception as err:
-        return jsonify(message=f'Erro interno: {str(err)}'), 500
+        return jsonify(message=f"Erro interno: {str(err)}"), 500
 
 # Nova Rota "/alunos/do/instrutor/id" - método GET
 @MY_APP.route('/alunos/do/instrutor/<int:id>', methods=['GET'])
