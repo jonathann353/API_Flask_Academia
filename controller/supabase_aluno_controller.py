@@ -21,11 +21,8 @@ MY_APP = Blueprint('MY_APP', __name__)
 # Supabase URL e chave (substitua pelos valores da sua conta Supabase)
 load_dotenv()  # Carrega as variáveis do .env
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-# Carregar variáveis de ambiente
-SECRET_KEY = os.getenv("SECRET_KEY")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
 # Crie o cliente do Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -354,17 +351,6 @@ def atualizar_exercicio(cod_exercicio):
 
     except Exception as err:
         return jsonify({'message': f'Erro ao atualizar exercício: {str(err)}'}), 500
-
-    
-from flask import request, jsonify
-from supabase import create_client
-import time
-import re
-
-# Configurar cliente Supabase
-url = "https://YOUR_PROJECT.supabase.co"
-key = "YOUR_SERVICE_ROLE_KEY"
-supabase = create_client(url, key)
 
 @MY_APP.route('/atualizar/aluno/<int:id>', methods=['PUT'])
 def atualizar_Aluno(id):
