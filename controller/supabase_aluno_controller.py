@@ -15,13 +15,23 @@ import uuid
 import jwt
 import os
 import re
+import sys
 
 MY_APP = Blueprint('MY_APP', __name__)
 
+# Pega variáveis de ambiente
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
+# Verifica se estão definidas
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("❌ Erro: SUPABASE_URL ou SUPABASE_KEY não estão definidas!")
+    print("Defina essas variáveis de ambiente antes de rodar a aplicação.")
+    sys.exit(1)  # Encerra a aplicação com status de erro
+
+# Cria o cliente Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+print("✅ Cliente Supabase criado com sucesso!")
 
 logging.basicConfig(level=logging.DEBUG)
 # Função para verificar se os campos obrigatórios estão no JSON
