@@ -18,9 +18,9 @@ import re
 
 MY_APP = Blueprint('MY_APP', __name__)
 
-SUPABASE_URL = "https://pgdldfqzqgxowqedrldh.supabase.co"
-SUPABASE_KEY = "sb_secret_Tw6kLMEnSdmb1yS6wceMSg_iO7i7TuS"
-# Crie o cliente do Supabase
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 logging.basicConfig(level=logging.DEBUG)
