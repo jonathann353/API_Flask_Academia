@@ -20,8 +20,8 @@ import sys
 MY_APP = Blueprint('MY_APP', __name__)
 
 # Pega variáveis de ambiente
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 
 # Verifica se estão definidas
 if not SUPABASE_URL or not SUPABASE_KEY:
