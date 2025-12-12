@@ -95,19 +95,20 @@ def listar_Aluno():
                     'cod_aluno': aluno['cod_aluno'],
                     'nome': aluno['nome'],
                     'sobrenome': aluno['sobrenome'],
-                    'documento': aluno['documento'],
+                    'documento': aluno.get('documento'),
                     'email': aluno['email'],
                     'telefone': aluno['telefone'],
                     'Cod_instrutor': aluno['Cod_instrutor'],
                     'status': aluno['status'],
-                    'data_nascimento': aluno['data_nascimento'],
-                    'sexo': aluno['sexo']
+                    'data_nascimento': aluno.get('data_nascimento'),
+                    'sexo': aluno.get('sexo'),
+                    'foto': aluno.get('foto')  # ✅ Adicionada a foto
                 } for aluno in response.data
             ]
             return jsonify(mensagem='lista de alunos', dados=lista_alunos), 200
+        return jsonify(mensagem='Nenhum aluno encontrado', dados=[]), 200
     except Exception as err:
         return jsonify({'message': str(err)}), 500
-
 
 @MY_APP.route('/listar/instrutor', methods=['GET'])
 def listar_Instrutor():
@@ -210,13 +211,14 @@ def buscar_Aluno(id):
                 'cod_aluno': a['cod_aluno'],
                 'nome': a['nome'],
                 'sobrenome': a['sobrenome'],
-                'documento': a['documento'],
+                'documento': a.get('documento'),
                 'email': a['email'],
                 'telefone': a['telefone'],
                 'Cod_instrutor': a['Cod_instrutor'],
                 'status': a['status'],
-                'data_nascimento': a['data_nascimento'],
-                'sexo': a['sexo']
+                'data_nascimento': a.get('data_nascimento'),
+                'sexo': a.get('sexo'),
+                'foto': a.get('foto')  # ✅ Adicionada a foto
             } for a in response.data]
 
             return jsonify(mensagem='Aluno encontrado', dados=aluno), 200
