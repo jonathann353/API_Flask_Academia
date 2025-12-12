@@ -29,6 +29,7 @@ mysql-connector-repackaged==0.3.1
 packaging==24.2
 postgrest==0.19.3
 propcache==0.3.0
+pg8000
 pydantic==2.10.6
 pydantic_core==2.27.2
 PyJWT==2.10.1
