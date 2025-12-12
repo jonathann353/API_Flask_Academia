@@ -379,16 +379,17 @@ def atualizar_Aluno(id):
             nome_sanitizado = re.sub(r'[^a-zA-Z0-9_-]', '', nome)
             ext = foto.filename.rsplit('.', 1)[-1].lower()
             timestamp = int(time.time())
-
+        
             filename = f"{nome_sanitizado}_{timestamp}.{ext}"
-
+        
             supabase().storage.from_("foto de perfil aluno").upload(
                 filename,
                 foto.read(),
                 file_options={"content-type": foto.content_type}
             )
-
-            foto_url = supabase().storage.from_("foto de perfil aluno").get_public_url(filename).get('publicUrl')
+        
+            # ✔️ CORREÇÃO AQUI
+            foto_url = supabase().storage.from_("foto de perfil aluno").get_public_url(filename)
 
         update_data = {
             'nome': nome,
