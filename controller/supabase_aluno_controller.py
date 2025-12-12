@@ -8,40 +8,56 @@ from werkzeug.security import check_password_hash
 from hashlib import sha256
 from supabase import create_client, Client
 import logging
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import randint
 import uuid
 import jwt
 import os
 import re
 import sys
+import time
 
 MY_APP = Blueprint('MY_APP', __name__)
 
-# Pega variáveis de ambiente
-SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+# -------------------------------------------
+# 🔐 Carregar variáveis de ambiente
+# -------------------------------------------
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# Verifica se estão definidas
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ Erro: SUPABASE_URL ou SUPABASE_KEY não estão definidas!")
-    print("Defina essas variáveis de ambiente antes de rodar a aplicação.")
-    sys.exit(1)  # Encerra a aplicação com status de erro
+    print("❌ ERRO: SUPABASE_URL ou SUPABASE_KEY não foram definidas!")
+    sys.exit(1)
 
-# Cria o cliente Supabase
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-print("✅ Cliente Supabase criado com sucesso!")
+# -------------------------------------------
+# 🧠 Inicialização preguiçosa (lazy-loading)
+# -------------------------------------------
+_supabase: Client | None = None
+
+def supabase() -> Client:
+    global _supabase
+    if _supabase is None:
+        _supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Cliente Supabase inicializado!")
+    return _supabase
+
 
 logging.basicConfig(level=logging.DEBUG)
-# Função para verificar se os campos obrigatórios estão no JSON
+
+# -------------------------------------------
+# Função utilitária
+# -------------------------------------------
 def validar_campos(campos, dados):
     for campo in campos:
         if campo not in dados:
             return False, f"Campo obrigatório: {campo}"
     return True, None
 
-# Rota para criar um novo administrador
+
+# ============================================================
+# 🚀 ROTAS
+# ============================================================
+
 @MY_APP.route('/criar_administrador', methods=['POST'])
 def criar_administrador():
     try:
@@ -54,36 +70,30 @@ def criar_administrador():
         password = adm["password"]
         hash_senha = sha256(password.encode()).hexdigest()
 
-        # Inserindo dados no Supabase
-        response = supabase.table('administrativo').insert({
+        response = supabase().table('administrativo').insert({
             'username': adm['username'],
             'password': hash_senha
         }).execute()
 
         return jsonify(message='Administrador criado com sucesso'), 200
-        
     except Exception as err:
-        return jsonify(message='Erro ao criar administrador'), 500
-        
+        return jsonify(message=str(err)), 500
 
 
-#rota "/" raiz da aplicação lista os alunos cadastrados no sistema
 @MY_APP.route('/listar/aluno', methods=['GET'])
-#@jwt_required()
-
 def listar_Aluno():
     try:
-        response = supabase.table('aluno').select("*").execute()
+        response = supabase().table('aluno').select("*").execute()
         if response.data:
             lista_alunos = [
                 {
                     'cod_aluno': aluno['cod_aluno'],
                     'nome': aluno['nome'],
-                    'sobrenome':aluno['sobrenome'],
+                    'sobrenome': aluno['sobrenome'],
                     'documento': aluno['documento'],
                     'email': aluno['email'],
                     'telefone': aluno['telefone'],
-                    'Cod_instrutor':aluno['Cod_instrutor'],
+                    'Cod_instrutor': aluno['Cod_instrutor'],
                     'status': aluno['status'],
                     'data_nascimento': aluno['data_nascimento'],
                     'sexo': aluno['sexo']
@@ -93,11 +103,11 @@ def listar_Aluno():
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
+
 @MY_APP.route('/listar/instrutor', methods=['GET'])
-#@jwt_required()
 def listar_Instrutor():
     try:
-        response = supabase.table('instrutor').select("*").execute()
+        response = supabase().table('instrutor').select("*").execute()
         if response.data:
             lista_instrutor = [
                 {
@@ -112,37 +122,35 @@ def listar_Instrutor():
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
-# Rota "/instrutor" - método POST adiciona um novo instrutor no sistema
+
 @MY_APP.route('/inserir/instrutor', methods=['POST'])
-#@jwt_required()  # Habilita a verificação do token JWT
 def inserir_Instrutor():
-    instrutor = request.json
     try:
-        # Valida se os campos obrigatórios estão presentes
+        instrutor = request.json
         campos_obrigatorios = ['nome', 'num_confef', 'telefone', 'funcao']
         valido, mensagem = validar_campos(campos_obrigatorios, instrutor)
         if not valido:
             return jsonify(message=mensagem), 400
 
-        # Inserir o novo instrutor na tabela "instrutor" do Supabase
-        response = supabase.table('instrutor').insert({
+        response = supabase().table('instrutor').insert({
             'nome': instrutor["nome"],
             'num_confef': instrutor["num_confef"],
             'telefone': instrutor["telefone"],
             'funcao': instrutor["funcao"]
         }).execute()
         return jsonify({'message': 'Instrutor inserido com sucesso'}), 200
-    except Exception as err:
+    Except Exception as err:
         return jsonify({'message': str(err)}), 500
-    
+
+
 @MY_APP.route('/inserir/aluno', methods=['POST'])
 def inserir_Aluno():
-    aluno = request.json
-
     try:
+        aluno = request.json
+
         campos_obrigatorios = [
             'nome', 'sobrenome', 'documento', 'email',
-            'telefone','status','data_nascimento',
+            'telefone', 'status', 'data_nascimento',
             'sexo', 'Cod_plano'
         ]
 
@@ -153,12 +161,11 @@ def inserir_Aluno():
         documento = aluno['documento']
 
         if not validar_documento(documento):
-            return jsonify({'erro': ' ou CNPJ inválido'}), 400
+            return jsonify({'erro': 'CPF ou CNPJ inválido'}), 400
 
         documento_limpo = somente_numeros(documento)
 
-        # ✅ Verificar duplicidade
-        existente = supabase.table('aluno') \
+        existente = supabase().table('aluno') \
             .select('cod_aluno') \
             .eq('documento', documento_limpo) \
             .execute()
@@ -169,7 +176,7 @@ def inserir_Aluno():
         status_str = aluno['status']
         status_bool = True if status_str.lower() == 'ativo' else False
 
-        supabase.table('aluno').insert({
+        supabase().table('aluno').insert({
             'nome': aluno["nome"],
             'sobrenome': aluno["sobrenome"],
             'documento': documento_limpo,
@@ -186,43 +193,39 @@ def inserir_Aluno():
 
     except Exception as err:
         return jsonify({'erro': str(err)}), 500
-    
-    
-# Rota "/aluno/id" - método GET busca no sistema pelo id do aluno
+
+
 @MY_APP.route('/busca/aluno/<int:id>', methods=['GET'])
-# @jwt_required()
 def buscar_Aluno(id):
     try:
-        if not id:
-            return jsonify(message='Campo id é obrigatório'), 400
-
-        # Consultar no Supabase
-        response = supabase.table('aluno').select('*').eq('cod_aluno', id).execute()
+        response = supabase().table('aluno').select('*').eq('cod_aluno', id).execute()
 
         if response.data:
-            aluno = [{'cod_aluno': aluno['cod_aluno'],
-                'nome': aluno['nome'],
-                'sobrenome':aluno['sobrenome'],
-                'documento': aluno['documento'],
-                'email': aluno['email'],
-                'telefone': aluno['telefone'],
-                'Cod_instrutor':aluno['Cod_instrutor'],
-                'status': aluno['status'],
-                'data_nascimento': aluno['data_nascimento'],
-                'sexo': aluno['sexo']
-                } for aluno in response.data
-            ]
-        return jsonify(mensagem='Aluno encontrado', dados=aluno), 200
+            aluno = [{
+                'cod_aluno': a['cod_aluno'],
+                'nome': a['nome'],
+                'sobrenome': a['sobrenome'],
+                'documento': a['documento'],
+                'email': a['email'],
+                'telefone': a['telefone'],
+                'Cod_instrutor': a['Cod_instrutor'],
+                'status': a['status'],
+                'data_nascimento': a['data_nascimento'],
+                'sexo': a['sexo']
+            } for a in response.data]
+
+            return jsonify(mensagem='Aluno encontrado', dados=aluno), 200
+
+        return jsonify(message="Aluno não encontrado"), 404
+
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
-# Rota "/detalhes_aluno_e_instrutores/id" - método GET busca relação de aluno e instrutores
+# Rota "/detalhes/aluno/e/instrutores/id"
 @MY_APP.route('/detalhes/aluno/e/instrutores/<int:id>', methods=['GET'])
-# @jwt_required()
 def detalhes_Aluno_e_Instrutores(id):
     try:
-        # Buscar aluno pelo ID
-        response_aluno = supabase.table('aluno').select("*").eq("cod_aluno", id).execute()
+        response_aluno = supabase().table('aluno').select("*").eq("cod_aluno", id).execute()
         
         if not response_aluno.data:
             return jsonify(message='Aluno não encontrado'), 404
@@ -232,7 +235,12 @@ def detalhes_Aluno_e_Instrutores(id):
 
         instrutor = {}
         if cod_instrutor:
-            response_instrutor = supabase.table('instrutor').select("nome, funcao").eq("cod_instrutor", cod_instrutor).execute()
+            response_instrutor = (
+                supabase().table('instrutor')
+                .select("nome, funcao")
+                .eq("cod_instrutor", cod_instrutor)
+                .execute()
+            )
             if response_instrutor.data:
                 instrutor = response_instrutor.data[0]
 
@@ -250,45 +258,36 @@ def detalhes_Aluno_e_Instrutores(id):
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
-    
-    
-# Rota "/detalhes_treino_aluno/id" - método GET busca detalhes do treino do aluno
+
+
+# Rota "/detalhes/treino/aluno/id"
 @MY_APP.route('/detalhes/treino/aluno/<int:id>', methods=['GET'])
-# @jwt_required()
 def detalhes_Treino_Aluno(id):
     try:
-        if not id:
-            return jsonify(message='Campo id é obrigatório'), 400
-
-        # 🔍 Buscar dados do aluno
-        response_aluno = supabase.table('aluno').select('nome').eq('cod_aluno', id).execute()
+        response_aluno = supabase().table('aluno').select('nome').eq('cod_aluno', id).execute()
         if not response_aluno.data:
             return jsonify(message='Aluno não encontrado'), 404
 
         nome_aluno = response_aluno.data[0]['nome']
 
-        # 🔍 Buscar treinos do aluno
-        response_treino = supabase.table('treino').select('*').eq('cod_aluno', id).execute()
+        response_treino = supabase().table('treino').select('*').eq('cod_aluno', id).execute()
         if not response_treino.data:
             return jsonify(message='Treinos não encontrados'), 404
 
         treinos = response_treino.data
-
         resultado = []
 
         for treino in treinos:
             cod_treino = treino.get('cod_treino')
             cod_instrutor = treino.get('cod_instrutor')
 
-            # 🔍 Buscar nome do instrutor
             if cod_instrutor:
-                response_instrutor = supabase.table('instrutor').select('nome').eq('cod_instrutor', cod_instrutor).execute()
+                response_instrutor = supabase().table('instrutor').select('nome').eq('cod_instrutor', cod_instrutor).execute()
                 nome_instrutor = response_instrutor.data[0]['nome'] if response_instrutor.data else 'Não informado'
             else:
                 nome_instrutor = 'Não informado'
 
-            # 🔍 Buscar exercícios vinculados a este treino
-            response_exercicios = supabase.table('exercicio').select('*').eq('cod_treino', cod_treino).execute()
+            response_exercicios = supabase().table('exercicio').select('*').eq('cod_treino', cod_treino).execute()
             exercicios = response_exercicios.data if response_exercicios.data else []
 
             lista_exercicios = []
@@ -303,7 +302,6 @@ def detalhes_Treino_Aluno(id):
                     'concluido': ex.get('concluido')
                 })
 
-            # 🔍 Verificar se TODOS os exercícios estão concluídos
             treino_concluido = all(ex.get('concluido') for ex in exercicios) if exercicios else False
 
             resultado.append({
@@ -328,15 +326,12 @@ def detalhes_Treino_Aluno(id):
         return jsonify({'message': str(err)}), 500
 
 
+# Atualizar exercício
 @MY_APP.route('/atualizar/exercicio/<int:cod_exercicio>', methods=['PUT'])
 def atualizar_exercicio(cod_exercicio):
     try:
         dados = request.json
 
-        if not cod_exercicio:
-            return jsonify({'message': 'O código do exercício é obrigatório'}), 400
-
-        # ✅ Campos que podem ser atualizados (incluindo 'concluido')
         campos_permitidos = [
             'nome_exercicio', 'serie', 'repeticoes',
             'carga', 'observacao', 'concluido'
@@ -347,21 +342,21 @@ def atualizar_exercicio(cod_exercicio):
         if not dados_update:
             return jsonify({'message': 'Nenhum dado válido para atualizar'}), 400
 
-        # 🔥 Executa o update no Supabase
-        response = supabase.table('exercicio').update(dados_update).eq('cod_exercicio', cod_exercicio).execute()
+        response = supabase().table('exercicio').update(dados_update).eq('cod_exercicio', cod_exercicio).execute()
 
         if response.data:
-            return jsonify({'message': 'Exercício atualizado com sucesso!', 'dados': response.data}), 200
+            return jsonify({'message': 'Exercício atualizado', 'dados': response.data}), 200
         else:
-            return jsonify({'message': 'Exercício não encontrado ou não atualizado'}), 404
+            return jsonify({'message': 'Exercício não encontrado'}), 404
 
     except Exception as err:
         return jsonify({'message': f'Erro ao atualizar exercício: {str(err)}'}), 500
 
+
+# Atualizar aluno com foto
 @MY_APP.route('/atualizar/aluno/<int:id>', methods=['PUT'])
 def atualizar_Aluno(id):
     try:
-        # Recebe campos do formulário
         nome = request.form.get('nome')
         sobrenome = request.form.get('sobrenome')
         email = request.form.get('email')
@@ -369,40 +364,27 @@ def atualizar_Aluno(id):
         Cod_instrutor = request.form.get('Cod_instrutor')
         status = request.form.get('status')
 
-        foto = request.files.get('foto')  # Arquivo enviado
+        foto = request.files.get('foto')
 
-        # Validação de campos obrigatórios
         if not nome or not sobrenome or not email or not telefone or not Cod_instrutor:
-            return jsonify(message='Campos obrigatórios: nome, sobrenome, email, telefone e Cod_instrutor'), 400
+            return jsonify(message='Campos obrigatórios faltando'), 400
 
-        # -------------------------------------------------------------------
-        # 1) Upload da foto no Storage (bucket "foto de perfil aluno")
-        # -------------------------------------------------------------------
         foto_url = None
         if foto:
-            # Sanitizar nome para evitar caracteres inválidos
             nome_sanitizado = re.sub(r'[^a-zA-Z0-9_-]', '', nome)
-
-            # Extensão do arquivo
             ext = foto.filename.rsplit('.', 1)[-1].lower()
-
-            # Sufixo único baseado em timestamp para evitar sobrescrever arquivos
             timestamp = int(time.time())
-            filename = f"{nome_sanitizado}_{timestamp}.{ext}"  # Ex: Joao_1702281023.jpg
 
-            # Faz upload no bucket
-            supabase.storage.from_("foto de perfil aluno").upload(
+            filename = f"{nome_sanitizado}_{timestamp}.{ext}"
+
+            supabase().storage.from_("foto de perfil aluno").upload(
                 filename,
                 foto.read(),
                 file_options={"content-type": foto.content_type}
             )
 
-            # Pega URL pública do arquivo
-            foto_url = supabase.storage.from_("foto de perfil aluno").get_public_url(filename).get('publicUrl')
+            foto_url = supabase().storage.from_("foto de perfil aluno").get_public_url(filename).get('publicUrl')
 
-        # -------------------------------------------------------------------
-        # 2) Atualiza aluno no banco
-        # -------------------------------------------------------------------
         update_data = {
             'nome': nome,
             'sobrenome': sobrenome,
@@ -415,63 +397,50 @@ def atualizar_Aluno(id):
         if foto_url:
             update_data["foto"] = foto_url
 
-        supabase.table('aluno').update(update_data).eq('cod_aluno', id).execute()
+        supabase().table('aluno').update(update_data).eq('cod_aluno', id).execute()
 
-        return jsonify(mensagem='Aluno atualizado com sucesso', foto=foto_url), 200
+        return jsonify(mensagem='Aluno atualizado', foto=foto_url), 200
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
-# Rota "/atualizar/aluno/id" - método PATCH atualiza apenas os campos enviados
+# Atualização parcial (PATCH)
 @MY_APP.route('/atualizar/aluno/<int:cod_aluno>', methods=['PATCH'])
-# @jwt_required()
 def atualizar_aluno_parcial(cod_aluno):
     try:
         data = request.get_json()
 
         if not data:
-            return jsonify(mensagem="Nenhum dado enviado para atualização"), 400
+            return jsonify(mensagem="Nenhum dado enviado"), 400
 
-        # Atualiza apenas os campos enviados no JSON
-        response = (
-            supabase.table('aluno')
-            .update(data)
-            .eq('cod_aluno', cod_aluno)
-            .execute()
-        )
+        response = supabase().table('aluno').update(data).eq('cod_aluno', cod_aluno).execute()
 
         if not response.data:
-            return jsonify(mensagem="Aluno não encontrado ou sem alterações"), 404
+            return jsonify(mensagem="Aluno não encontrado"), 404
 
-        return jsonify(
-            mensagem="Aluno atualizado com sucesso",
-            aluno=response.data[0]
-        ), 200
+        return jsonify(mensagem="Aluno atualizado", aluno=response.data[0]), 200
 
     except Exception as err:
         return jsonify({'erro': str(err)}), 500
 
+
+# Criar treino
 @MY_APP.route('/criar/treino/aluno', methods=['POST'])
 def criar_treino_aluno():
     try:
         data = request.json
-
         obrig = ['tipo_treino', 'cod_aluno', 'cod_instrutor', 'data_inicio', 'dia_semana']
+
         for c in obrig:
             if not data.get(c):
                 return jsonify(message=f"Campo {c} é obrigatório"), 400
 
-        # usa o cod_treino se vier do payload, senão cria um inteiro aleatório
         cod_treino = data.get("cod_treino")
         if cod_treino is None:
-            # Gera um inteiro aleatório (em produção, use auto-increment do DB)
             cod_treino = randint(100000, 999999)
         else:
-            try:
-                cod_treino = int(cod_treino)
-            except ValueError:
-                return jsonify(message="cod_treino deve ser um número inteiro"), 400
+            cod_treino = int(cod_treino)
 
         treino = {
             "cod_treino": cod_treino,
@@ -485,252 +454,194 @@ def criar_treino_aluno():
             "dia_semana": data['dia_semana']
         }
 
-        supabase.table("treino").insert(treino).execute()
+        supabase().table("treino").insert(treino).execute()
 
-        return jsonify(message="Treino criado com sucesso", cod_treino=cod_treino), 201
+        return jsonify(message="Treino criado", cod_treino=cod_treino), 201
 
     except Exception as e:
-        return jsonify(message=f"Erro interno: {e}"), 500
+        return jsonify(message=f"Erro: {e}"), 500
 
 
+# Criar exercícios
 @MY_APP.route('/criar/exercicio/treino', methods=['POST'])
 def criar_exercicio_treino():
     try:
         data = request.json
 
-        # aceita payload único ou lista
-        if "exercicios" in data:
-            lista = data["exercicios"]
-        else:
-            lista = [data]
+        lista = data["exercicios"] if "exercicios" in data else [data]
 
         for ex in lista:
             obrig = ['cod_treino', 'exercicio', 'serie', 'repeticao', 'intervalo', 'carga']
+
             for campo in obrig:
                 if ex.get(campo) in [None, ""]:
                     return jsonify(message=f"O campo {campo} é obrigatório"), 400
 
-            # converte tipos
-            try:
-                ex["cod_treino"] = int(ex["cod_treino"])
-                ex["serie"] = int(ex["serie"])
-                ex["repeticao"] = int(ex["repeticao"])
-                ex["carga"] = float(ex["carga"])
-            except ValueError as ve:
-                return jsonify(message=f"Erro de conversão de tipo: {ve}"), 400
+            ex["cod_treino"] = int(ex["cod_treino"])
+            ex["serie"] = int(ex["serie"])
+            ex["repeticao"] = int(ex["repeticao"])
+            ex["carga"] = float(ex["carga"])
 
-        supabase.table("exercicio").insert(lista).execute()
+        supabase().table("exercicio").insert(lista).execute()
 
-        return jsonify(message="Exercícios criados com sucesso"), 201
+        return jsonify(message="Exercícios criados"), 201
 
     except Exception as e:
-        return jsonify(message=f"Erro interno: {e}"), 500
+        return jsonify(message=f"Erro: {e}"), 500
 
-# Nova Rota "/alunos/do/instrutor/id" - método GET
+
 @MY_APP.route('/alunos/do/instrutor/<int:id>', methods=['GET'])
-# @jwt_required()
 def listar_alunos_por_instrutor(id):
     try:
-        # Buscar todos os alunos com o Cod_instrutor informado
-        response_alunos = supabase.table('aluno').select("*").eq("Cod_instrutor", id).execute()
+        response = supabase().table('aluno').select("*").eq("Cod_instrutor", id).execute()
 
-        if not response_alunos.data:
-            return jsonify(message='Nenhum aluno vinculado a este instrutor'), 404
+        if not response.data:
+            return jsonify(message='Nenhum aluno encontrado'), 404
 
-        # Construir a lista de alunos
-        lista_alunos = []
-        for aluno in response_alunos.data:
-            lista_alunos.append({
-                'cod_aluno': aluno.get('cod_aluno'),
-                'nome': aluno.get('nome'),
-                'sobrenome': aluno.get('sobrenome'),
-                'cpf': aluno.get('documento'),
-                'email': aluno.get('email'),
-                'telefone': aluno.get('telefone'),
-            })
+        lista = [{
+            'cod_aluno': a.get('cod_aluno'),
+            'nome': a.get('nome'),
+            'sobrenome': a.get('sobrenome'),
+            'cpf': a.get('documento'),
+            'email': a.get('email'),
+            'telefone': a.get('telefone'),
+        } for a in response.data]
 
-        return jsonify({'instrutor_id': id, 'alunos': lista_alunos}), 200
+        return jsonify({'instrutor_id': id, 'alunos': lista}), 200
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
-# Nova Rota "/avaliacao/do/instrutor/id" - método POST
+
+# Avaliação física
 @MY_APP.route('/avaliacao/do/instrutor/<int:cod_instrutor>', methods=['POST'])
-# @jwt_required()
 def salvar_avaliacao(cod_instrutor):
     try:
         data = request.get_json()
 
-        # Validação dos dados obrigatórios
-        campos_obrigatorios = ['cod_aluno', 'data_avaliacao', 'peso', 'altura', 'imc', 'meta']
-        for campo in campos_obrigatorios:
-            if campo not in data or data[campo] == "" or data[campo] is None:
+        campos = ['cod_aluno', 'data_avaliacao', 'peso', 'altura', 'imc', 'meta']
+        for campo in campos:
+            if campo not in data:
                 return jsonify({'message': f'O campo {campo} é obrigatório.'}), 400
 
-        # Montar o payload para salvar na tabela de avaliação
         payload = {
-            'cod_instrutor':cod_instrutor,
-            'cod_aluno': data.get('cod_aluno'),
-            'data_avaliacao': data.get('data_avaliacao'),
-            'peso': float(data.get('peso')),
-            'altura': float(data.get('altura')),
-            'imc': float(data.get('imc')),
-            'meta': data.get('meta'),
-            'observacoes': data.get('observacoes', '')  # Observações é opcional
+            'cod_instrutor': cod_instrutor,
+            'cod_aluno': data['cod_aluno'],
+            'data_avaliacao': data['data_avaliacao'],
+            'peso': float(data['peso']),
+            'altura': float(data['altura']),
+            'imc': float(data['imc']),
+            'meta': data['meta'],
+            'observacoes': data.get('observacoes', '')
         }
 
-        # Inserir no banco (supabase)
-        response = supabase.table('avaliacao_fisica').insert(payload).execute()
+        response = supabase().table('avaliacao_fisica').insert(payload).execute()
 
-        if response.data:
-            return jsonify({
-                'message': 'Avaliação salva com sucesso!',
-                'avaliacao': response.data
-            }), 201
-        else:
-            return jsonify({'message': 'Erro ao salvar avaliação.'}), 500
+        return jsonify({'message': 'Avaliação salva', 'avaliacao': response.data}), 201
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
-# Rota "/avaliacoes/do/aluno/<id>" - método GET
+
+# Buscar avaliações
 @MY_APP.route('/avaliacoes/do/aluno/<int:cod_aluno>', methods=['GET'])
-# @jwt_required()  # Descomente se estiver usando autenticação JWT
 def buscar_avaliacoes(cod_aluno):
     try:
-        # Consulta no Supabase as avaliações do aluno específico
-        response = supabase.table('avaliacao_fisica') \
-            .select('*') \
-            .eq('cod_aluno', cod_aluno) \
-            .order('data_avaliacao', desc=True) \
+        response = (
+            supabase().table('avaliacao_fisica')
+            .select('*')
+            .eq('cod_aluno', cod_aluno)
+            .order('data_avaliacao', desc=True)
             .execute()
+        )
 
-        avaliacoes = response.data
+        if not response.data:
+            return jsonify(message='Nenhuma avaliação encontrada', avaliacoes=[]), 404
 
-        if not avaliacoes:
-            return jsonify({
-                'message': 'Nenhuma avaliação encontrada para este aluno.',
-                'avaliacoes': []
-            }), 404
-
-        return jsonify({
-            'message': 'Avaliações encontradas com sucesso.',
-            'avaliacoes': avaliacoes
-        }), 200
+        return jsonify(message='Avaliações encontradas', avaliacoes=response.data), 200
 
     except Exception as err:
-        return jsonify({'message': f'Erro ao buscar avaliações: {str(err)}'}), 500
-        
-# Rota "/aluno/id" - método DELETE exclui o aluno do sistema
+        return jsonify({'message': f'Erro: {str(err)}'}), 500
+
+
+# Deletar aluno
 @MY_APP.route('/deletar/aluno/<int:id>', methods=['DELETE'])
 def deletar_Aluno(id):
     try:
-        response = supabase.table('aluno').delete().eq('cod_aluno', id).execute()
+        response = supabase().table('aluno').delete().eq('cod_aluno', id).execute()
+
         if response.data:
-            return jsonify(message='Aluno deletado com sucesso'), 200
+            return jsonify(message='Aluno deletado'), 200
+
         return jsonify(message='Aluno não encontrado'), 404
+
     except Exception as err:
         return jsonify({'message': f'Erro ao deletar: {str(err)}'}), 500
 
-# Rota "/treino" - método POST adiciona um novo treino no sistema
-@MY_APP.route('/adicionar/treino', methods=['POST'])
-# @jwt_required()
-def adicionar_Treino():
-    try:
-        treino = request.json
-        campos_obrigatorios = ['tipo_treino', 'exercicio', 'serie', 'repeticao', 'cod_aluno', 'cod_instrutor']
-        valido, mensagem = validar_campos(campos_obrigatorios, treino)
-        if not valido:
-            return jsonify(message=mensagem), 400
 
-        # Inserir no Supabase
-        response = supabase.table('treino').insert({
-            'tipo_treino': treino["tipo_treino"],
-            'exercicio': treino["exercicio"],
-            'serie': treino["serie"],
-            'repeticao': treino["repeticao"],
-            'cod_aluno': treino["cod_aluno"],
-            'cod_instrutor': treino["cod_instrutor"]
-        }).execute()
-
-        if response.data:
-            return jsonify({'message': 'Treino inserido com sucesso'}), 200
-        return jsonify({'message': 'Erro ao inserir treino'}), 500
-    except Exception as err:
-        return jsonify({'message': str(err)}), 500
-
+# Login
 @MY_APP.route('/login', methods=['POST'])
 def login_user():
     try:
         login_data = request.get_json()
 
-        if 'username' not in login_data or 'password' not in login_data:
-            return jsonify({'message': 'Nome de usuário e senha são obrigatórios'}), 400
+        username = login_data.get('username')
+        password = login_data.get('password')
 
-        username = login_data['username']
-        password = login_data['password']
+        if not username or not password:
+            return jsonify({'message': 'Campos obrigatórios'}), 400
 
-        # Busca o usuário na tabela 'administrativo' no Supabase
-        response = supabase.table("auth_user").select("*").eq("username", username).execute()
-        user_data = response.data
+        response = supabase().table("auth_user").select("*").eq("username", username).execute()
+        user = response.data
 
-        if not user_data:
-            return jsonify({'message': 'Nome de usuário ou senha incorretos'}), 401
+        if not user:
+            return jsonify({'message': 'Usuário ou senha incorretos'}), 401
 
-        # Pegando o hash da senha salva no banco
-        hashed_password_from_db = user_data[0]['password']
+        hashed_password_from_db = user[0]['password']
+        hashed_password_input = sha256(password.encode()).hexdigest()
 
-        # Gerando hash da senha enviada pelo usuário
-        hashed_password_input = sha256(password.encode('utf-8')).hexdigest()
+        if hashed_password_input != hashed_password_from_db:
+            return jsonify({'message': 'Usuário ou senha incorretos'}), 401
 
-        if hashed_password_input == hashed_password_from_db:
-            # Criando token com validade de 2h
-            access_token = create_access_token(identity=username, expires_delta=timedelta(hours=2))
-            return jsonify({'access_token': access_token}), 200
-        else:
-            return jsonify({'message': 'Nome de usuário ou senha incorretos'}), 401
+        access_token = create_access_token(identity=username, expires_delta=timedelta(hours=2))
+        return jsonify({'access_token': access_token}), 200
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
+
+# Registrar usuário
 @MY_APP.route('/register', methods=['POST'])
 def register_user():
     try:
         data = request.get_json()
+
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
-        first_name = data.get('first_name') or ""
-        last_name = data.get('last_name') or ""
-        is_superuser = data.get('is_superuser', False)  
 
         if not username or not email or not password:
-            return jsonify({"error": "Missing required fields"}), 400
+            return jsonify({"error": "Campos obrigatórios"}), 400
 
-        # Verifique se o usuário já existe
-        existing_user = supabase.table("auth_user").select("*").eq("username", username).execute()
-        if existing_user.data:
-            return jsonify({"error": "User already exists"}), 409
+        existing = supabase().table("auth_user").select("*").eq("username", username).execute()
+        if existing.data:
+            return jsonify({"error": "Usuário já existe"}), 409
 
-        # Gerar hash da senha com sha256
-        hashed_password = sha256(password.encode('utf-8')).hexdigest()
+        hashed_password = sha256(password.encode()).hexdigest()
 
-        # Inserir o novo usuário com is_superuser vindo do request
-        response = supabase.table("auth_user").insert({
+        response = supabase().table("auth_user").insert({
             "username": username,
             "email": email,
             "password": hashed_password,
-            "is_superuser": is_superuser, 
-            "is_staff": is_superuser,      
+            "is_superuser": False,
+            "is_staff": False,
             "is_active": True,
-            "first_name": first_name,
-            "last_name": last_name,
+            "first_name": data.get("first_name", ""),
+            "last_name": data.get("last_name", ""),
             "date_joined": datetime.now().isoformat()
         }).execute()
 
-        if response.data:
-            return jsonify({'message': 'Usuário adicionado com sucesso'}), 200
-        return jsonify({'message': 'Erro ao inserir usuário'}), 500
+        return jsonify({'message': 'Usuário criado'}), 200
 
     except Exception as err:
         return jsonify({'message': str(err)}), 500
@@ -740,53 +651,43 @@ def register_user():
 @jwt_required()
 def protected():
     try:
-        current_user = get_jwt_identity()
-        return jsonify(f'Logado como: {current_user}'), 200
+        user = get_jwt_identity()
+        return jsonify(f'Logado como: {user}'), 200
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
-# Remove tudo que não for número
+# =============================================================
+# FUNÇÕES AUXILIARES
+# =============================================================
+
 def somente_numeros(valor):
     return re.sub(r'\D', '', valor)
-
 
 def validar_cpf(cpf):
     if len(cpf) != 11 or cpf == cpf[0] * 11:
         return False
-
-    # Primeiro dígito
     soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
-    digito1 = (soma * 10 % 11) % 10
-
-    # Segundo dígito
+    dig1 = (soma * 10 % 11) % 10
     soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
-    digito2 = (soma * 10 % 11) % 10
-
-    return cpf[-2:] == f"{digito1}{digito2}"
-
+    dig2 = (soma * 10 % 11) % 10
+    return cpf[-2:] == f"{dig1}{dig2}"
 
 def validar_cnpj(cnpj):
     if len(cnpj) != 14 or cnpj == cnpj[0] * 14:
         return False
-
-    pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    pesos1 = [5,4,3,2,9,8,7,6,5,4,3,2]
     pesos2 = [6] + pesos1
-
     soma1 = sum(int(cnpj[i]) * pesos1[i] for i in range(12))
-    digito1 = 11 - (soma1 % 11)
-    digito1 = 0 if digito1 >= 10 else digito1
-
+    d1 = 11 - (soma1 % 11)
+    d1 = 0 if d1 >= 10 else d1
     soma2 = sum(int(cnpj[i]) * pesos2[i] for i in range(13))
-    digito2 = 11 - (soma2 % 11)
-    digito2 = 0 if digito2 >= 10 else digito2
-
-    return cnpj[-2:] == f"{digito1}{digito2}"
-
+    d2 = 11 - (soma2 % 11)
+    d2 = 0 if d2 >= 10 else d2
+    return cnpj[-2:] == f"{d1}{d2}"
 
 def validar_documento(documento):
     doc = somente_numeros(documento)
-
     if len(doc) == 11:
         return validar_cpf(doc)
     elif len(doc) == 14:
