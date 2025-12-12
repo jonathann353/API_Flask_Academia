@@ -356,35 +356,59 @@ def atualizar_exercicio(cod_exercicio):
         return jsonify({'message': f'Erro ao atualizar exercício: {str(err)}'}), 500
 
     
-# Rota "/aluno/id" - método PUT atualiza os dados do aluno
 @MY_APP.route('/atualizar/aluno/<int:id>', methods=['PUT'])
-# @jwt_required()
 def atualizar_Aluno(id):
     try:
-        nome = request.json.get('nome')
-        sobrenome = request.json.get('sobrenome')
-        email = request.json.get('email')
-        telefone = request.json.get('telefone')
-        Cod_instrutor = request.json.get('Cod_instrutor')
-        status= request.json.get('status')
-       
+        # Recebe campos do formulário
+        nome = request.form.get('nome')
+        sobrenome = request.form.get('sobrenome')
+        email = request.form.get('email')
+        telefone = request.form.get('telefone')
+        Cod_instrutor = request.form.get('Cod_instrutor')
+        status = request.form.get('status')
+
+        foto = request.files.get('foto')  # Arquivo enviado
 
         if not nome or not email or not telefone or not Cod_instrutor:
             return jsonify(message='Campos obrigatórios: nome, sobrenome, email, telefone e Cod_instrutor'), 400
 
-        # Atualizar no Supabase
-        response = supabase.table('aluno').update({
+        # -------------------------------------------------------------------
+        # 1) Upload da foto no Storage
+        # -------------------------------------------------------------------
+        foto_url = None
+        if foto:
+            filename = f"alunos/{id}_{foto.filename}"
+
+            supabase.storage.from_("alunos").upload(
+                filename,
+                foto.read(),
+                file_options={"content-type": foto.content_type}
+            )
+
+            foto_url = supabase.storage.from_("alunos").get_public_url(filename)
+
+        # -------------------------------------------------------------------
+        # 2) Atualiza aluno no banco
+        # -------------------------------------------------------------------
+        update_data = {
             'nome': nome,
             'sobrenome': sobrenome,
             'email': email,
             'telefone': telefone,
             'Cod_instrutor': Cod_instrutor,
-            'status':status
-        }).eq('cod_aluno', id).execute()
+            'status': status
+        }
 
-        return jsonify(mensagem='Aluno atualizado com sucesso'), 200
+        if foto_url:
+            update_data["foto"] = foto_url
+
+        supabase.table('aluno').update(update_data).eq('cod_aluno', id).execute()
+
+        return jsonify(mensagem='Aluno atualizado com sucesso', foto=foto_url), 200
+
     except Exception as err:
         return jsonify({'message': str(err)}), 500
+
 
 # Rota "/atualizar/aluno/id" - método PATCH atualiza apenas os campos enviados
 @MY_APP.route('/atualizar/aluno/<int:cod_aluno>', methods=['PATCH'])
