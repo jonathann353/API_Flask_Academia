@@ -356,6 +356,16 @@ def atualizar_exercicio(cod_exercicio):
         return jsonify({'message': f'Erro ao atualizar exercício: {str(err)}'}), 500
 
     
+from flask import request, jsonify
+from supabase import create_client
+import time
+import re
+
+# Configurar cliente Supabase
+url = "https://YOUR_PROJECT.supabase.co"
+key = "YOUR_SERVICE_ROLE_KEY"
+supabase = create_client(url, key)
+
 @MY_APP.route('/atualizar/aluno/<int:id>', methods=['PUT'])
 def atualizar_Aluno(id):
     try:
@@ -369,23 +379,34 @@ def atualizar_Aluno(id):
 
         foto = request.files.get('foto')  # Arquivo enviado
 
-        if not nome or not email or not telefone or not Cod_instrutor:
+        # Validação de campos obrigatórios
+        if not nome or not sobrenome or not email or not telefone or not Cod_instrutor:
             return jsonify(message='Campos obrigatórios: nome, sobrenome, email, telefone e Cod_instrutor'), 400
 
         # -------------------------------------------------------------------
-        # 1) Upload da foto no Storage
+        # 1) Upload da foto no Storage (bucket "foto de perfil aluno")
         # -------------------------------------------------------------------
         foto_url = None
         if foto:
-            filename = f"alunos/{id}_{foto.filename}"
+            # Sanitizar nome para evitar caracteres inválidos
+            nome_sanitizado = re.sub(r'[^a-zA-Z0-9_-]', '', nome)
 
-            supabase.storage.from_("alunos").upload(
+            # Extensão do arquivo
+            ext = foto.filename.rsplit('.', 1)[-1].lower()
+
+            # Sufixo único baseado em timestamp para evitar sobrescrever arquivos
+            timestamp = int(time.time())
+            filename = f"{nome_sanitizado}_{timestamp}.{ext}"  # Ex: Joao_1702281023.jpg
+
+            # Faz upload no bucket
+            supabase.storage.from_("foto de perfil aluno").upload(
                 filename,
                 foto.read(),
                 file_options={"content-type": foto.content_type}
             )
 
-            foto_url = supabase.storage.from_("alunos").get_public_url(filename)
+            # Pega URL pública do arquivo
+            foto_url = supabase.storage.from_("foto de perfil aluno").get_public_url(filename).get('publicUrl')
 
         # -------------------------------------------------------------------
         # 2) Atualiza aluno no banco
