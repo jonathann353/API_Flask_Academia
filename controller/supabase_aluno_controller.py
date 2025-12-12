@@ -25,6 +25,11 @@ MY_APP = Blueprint('MY_APP', __name__)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+print("🔍 DEBUG:")
+print("URL =", SUPABASE_URL)
+print("KEY começa com =", SUPABASE_KEY[:10] if SUPABASE_KEY else None)
+print("KEY tamanho =", len(SUPABASE_KEY) if SUPABASE_KEY else None)
+
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("❌ ERRO: SUPABASE_URL ou SUPABASE_KEY não foram definidas!")
     sys.exit(1)
@@ -76,7 +81,7 @@ def criar_administrador():
         }).execute()
 
         return jsonify(message='Administrador criado com sucesso'), 200
-    except exception as err:
+    except Exception as err:
         return jsonify(message=str(err)), 500
 
 
@@ -100,7 +105,7 @@ def listar_Aluno():
                 } for aluno in response.data
             ]
             return jsonify(mensagem='lista de alunos', dados=lista_alunos), 200
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -119,7 +124,7 @@ def listar_Instrutor():
                 } for instrutor in response.data
             ]
         return jsonify(mensagem='lista de instrutor', dados=lista_instrutor), 200
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -139,7 +144,7 @@ def inserir_Instrutor():
             'funcao': instrutor["funcao"]
         }).execute()
         return jsonify({'message': 'Instrutor inserido com sucesso'}), 200
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -191,7 +196,7 @@ def inserir_Aluno():
 
         return jsonify({'message': 'Aluno inserido com sucesso'}), 201
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'erro': str(err)}), 500
 
 
@@ -218,7 +223,7 @@ def buscar_Aluno(id):
 
         return jsonify(message="Aluno não encontrado"), 404
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 # Rota "/detalhes/aluno/e/instrutores/id"
@@ -256,7 +261,7 @@ def detalhes_Aluno_e_Instrutores(id):
             }
         }), 200
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -322,7 +327,7 @@ def detalhes_Treino_Aluno(id):
 
         return jsonify(resultado), 200
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -349,7 +354,7 @@ def atualizar_exercicio(cod_exercicio):
         else:
             return jsonify({'message': 'Exercício não encontrado'}), 404
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': f'Erro ao atualizar exercício: {str(err)}'}), 500
 
 
@@ -401,7 +406,7 @@ def atualizar_Aluno(id):
 
         return jsonify(mensagem='Aluno atualizado', foto=foto_url), 200
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -421,7 +426,7 @@ def atualizar_aluno_parcial(cod_aluno):
 
         return jsonify(mensagem="Aluno atualizado", aluno=response.data[0]), 200
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'erro': str(err)}), 500
 
 
@@ -509,7 +514,7 @@ def listar_alunos_por_instrutor(id):
 
         return jsonify({'instrutor_id': id, 'alunos': lista}), 200
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -539,7 +544,7 @@ def salvar_avaliacao(cod_instrutor):
 
         return jsonify({'message': 'Avaliação salva', 'avaliacao': response.data}), 201
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -560,7 +565,7 @@ def buscar_avaliacoes(cod_aluno):
 
         return jsonify(message='Avaliações encontradas', avaliacoes=response.data), 200
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': f'Erro: {str(err)}'}), 500
 
 
@@ -575,7 +580,7 @@ def deletar_Aluno(id):
 
         return jsonify(message='Aluno não encontrado'), 404
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': f'Erro ao deletar: {str(err)}'}), 500
 
 
@@ -606,7 +611,7 @@ def login_user():
         access_token = create_access_token(identity=username, expires_delta=timedelta(hours=2))
         return jsonify({'access_token': access_token}), 200
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -643,7 +648,7 @@ def register_user():
 
         return jsonify({'message': 'Usuário criado'}), 200
 
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
@@ -653,7 +658,7 @@ def protected():
     try:
         user = get_jwt_identity()
         return jsonify(f'Logado como: {user}'), 200
-    except exception as err:
+    except Exception as err:
         return jsonify({'message': str(err)}), 500
 
 
