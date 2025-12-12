@@ -18,12 +18,8 @@ import re
 
 MY_APP = Blueprint('MY_APP', __name__)
 
-# Supabase URL e chave (substitua pelos valores da sua conta Supabase)
-load_dotenv()  # Carrega as variáveis do .env
-
 SUPABASE_URL = "https://pgdldfqzqgxowqedrldh.supabase.co"
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-
+SUPABASE_KEY = "sb_secret_Tw6kLMEnSdmb1yS6wceMSg_iO7i7TuS"
 # Crie o cliente do Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
