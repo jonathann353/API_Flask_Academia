@@ -180,7 +180,6 @@ def inserir_Aluno():
             return jsonify({'erro': 'Documento já cadastrado'}), 409
 
         status_str = aluno['status']
-        status_bool = True if status_str.lower() == 'ativo' else False
 
         supabase().table('aluno').insert({
             'nome': aluno["nome"],
@@ -189,7 +188,7 @@ def inserir_Aluno():
             'email': aluno['email'],
             'telefone': aluno["telefone"],
             'Cod_instrutor': aluno.get('Cod_instrutor'),
-            'status': status_bool,
+            'status': status_str,
             'data_nascimento': aluno['data_nascimento'],
             'sexo': aluno['sexo'],
             'Cod_plano': aluno['Cod_plano']
