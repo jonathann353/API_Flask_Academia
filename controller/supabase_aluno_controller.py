@@ -730,43 +730,51 @@ def listar_agendamentos():
         return jsonify({'message': str(err)}), 500
 
 
-@MY_APP.route('/agendamento/<int:cod_agendamento>/editar', methods=['PUT'])
+@MY_APP.route('/agendamentos/<int:cod_agendamento>/editar', methods=['POST'])
 def editar_agendamento(cod_agendamento):
     try:
         data = request.get_json()
+        print("📥 Dados recebidos:", data)
 
-        payload = {
-            'data': data.get('data'),
-            'hora': data.get('hora'),
-            'duracao_minutos': data.get('duracao_minutos'),
-            'observacoes': data.get('observacoes'),
-            'status': data.get('status')
-        }
+        payload = {}
+        if 'data' in data:
+            payload['data'] = data['data']
+        if 'hora' in data:
+            payload['hora'] = data['hora']
+        if 'duracao_minutos' in data:
+            payload['duracao_minutos'] = int(data['duracao_minutos'])
+        if 'observacoes' in data:
+            payload['observacoes'] = data['observacoes']
 
-        payload = {k: v for k, v in payload.items() if v is not None}
+        if not payload:
+            return jsonify({'message': 'Nenhum dado para atualizar.'}), 400
 
-        response = supabase().table('agendamentos') \
-            .update(payload) \
-            .eq('cod_agendamento', cod_agendamento) \
+        response = supabase().table('agendamentos')\
+            .update(payload)\
+            .eq('cod_agendamento', cod_agendamento)\
             .execute()
 
         return jsonify({'message': 'Agendamento atualizado', 'agendamento': response.data}), 200
 
     except Exception as err:
+        print("❌ Erro editar_agendamento:", str(err))
         return jsonify({'message': str(err)}), 500
 
-@MY_APP.route('/agendamento/<int:cod_agendamento>/excluir', methods=['DELETE'])
-def excluir_agendamento(cod_agendamento):
+
+@MY_APP.route('/agendamentos/<int:cod_agendamento>/cancelar', methods=['POST'])
+def cancelar_agendamento(cod_agendamento):
     try:
-        response = supabase().table('agendamentos') \
-            .update({'status': 'cancelado'}) \
-            .eq('cod_agendamento', cod_agendamento) \
+        response = supabase().table('agendamentos')\
+            .update({'status': 'cancelado'})\
+            .eq('cod_agendamento', cod_agendamento)\
             .execute()
 
         return jsonify({'message': 'Agendamento cancelado'}), 200
 
     except Exception as err:
+        print("❌ Erro cancelar_agendamento:", str(err))
         return jsonify({'message': str(err)}), 500
+
 
 @MY_APP.route('/bloqueio/do/instrutor/<int:cod_instrutor>', methods=['POST'])
 def bloquear_horario(cod_instrutor):
