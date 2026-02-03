@@ -690,6 +690,46 @@ def salvar_agendamento(cod_instrutor):
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
+@MY_APP.route('/agendamentos', methods=['GET'])
+def listar_agendamentos():
+    try:
+        data_inicio = request.args.get('start')
+        data_fim = request.args.get('end')
+
+        query = supabase().table('agendamentos').select('*')
+
+        if data_inicio and data_fim:
+            query = query.gte('data', data_inicio[:10]).lte('data', data_fim[:10])
+
+        response = query.execute()
+        dados = response.data or []
+
+        eventos = []
+        for ag in dados:
+            inicio = f"{ag['data']}T{ag['hora']}"
+            from datetime import datetime, timedelta
+            inicio_dt = datetime.fromisoformat(inicio)
+            fim_dt = inicio_dt + timedelta(minutes=ag['duracao_minutos'])
+
+            eventos.append({
+                'id': ag['cod_agendamento'],
+                'title': f"Aluno #{ag['cod_aluno']} | Instrutor #{ag['cod_instrutor']}",
+                'start': inicio_dt.isoformat(),
+                'end': fim_dt.isoformat(),
+                'extendedProps': {
+                    'aluno': ag['cod_aluno'],
+                    'instrutor': ag['cod_instrutor'],
+                    'observacoes': ag.get('observacoes', '')
+                }
+            })
+
+        return jsonify(eventos), 200
+
+    except Exception as err:
+        print("❌ Erro listar_agendamentos:", str(err))
+        return jsonify({'message': str(err)}), 500
+
+
 @MY_APP.route('/agendamento/<int:cod_agendamento>/editar', methods=['PUT'])
 def editar_agendamento(cod_agendamento):
     try:
