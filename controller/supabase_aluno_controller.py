@@ -663,6 +663,95 @@ def protected():
     except Exception as err:
         return jsonify({'message': str(err)}), 500
 
+@MY_APP.route('/agendamento/do/instrutor/<int:cod_instrutor>', methods=['POST'])
+def salvar_agendamento(cod_instrutor):
+    try:
+        data = request.get_json()
+
+        campos = ['cod_aluno', 'data', 'hora', 'duracao_minutos']
+        for campo in campos:
+            if campo not in data:
+                return jsonify({'message': f'O campo {campo} é obrigatório.'}), 400
+
+        payload = {
+            'cod_instrutor': cod_instrutor,
+            'cod_aluno': data['cod_aluno'],
+            'data': data['data'],
+            'hora': data['hora'],
+            'duracao_minutos': int(data['duracao_minutos']),
+            'observacoes': data.get('observacoes', ''),
+            'status': 'ativo'
+        }
+
+        response = supabase().table('agendamentos').insert(payload).execute()
+
+        return jsonify({'message': 'Agendamento salvo', 'agendamento': response.data}), 201
+
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
+
+@MY_APP.route('/agendamento/<int:cod_agendamento>/editar', methods=['PUT'])
+def editar_agendamento(cod_agendamento):
+    try:
+        data = request.get_json()
+
+        payload = {
+            'data': data.get('data'),
+            'hora': data.get('hora'),
+            'duracao_minutos': data.get('duracao_minutos'),
+            'observacoes': data.get('observacoes'),
+            'status': data.get('status')
+        }
+
+        payload = {k: v for k, v in payload.items() if v is not None}
+
+        response = supabase().table('agendamentos') \
+            .update(payload) \
+            .eq('cod_agendamento', cod_agendamento) \
+            .execute()
+
+        return jsonify({'message': 'Agendamento atualizado', 'agendamento': response.data}), 200
+
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
+
+@MY_APP.route('/agendamento/<int:cod_agendamento>/excluir', methods=['DELETE'])
+def excluir_agendamento(cod_agendamento):
+    try:
+        response = supabase().table('agendamentos') \
+            .update({'status': 'cancelado'}) \
+            .eq('cod_agendamento', cod_agendamento) \
+            .execute()
+
+        return jsonify({'message': 'Agendamento cancelado'}), 200
+
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
+
+@MY_APP.route('/bloqueio/do/instrutor/<int:cod_instrutor>', methods=['POST'])
+def bloquear_horario(cod_instrutor):
+    try:
+        data = request.get_json()
+
+        campos = ['data', 'hora_inicio', 'hora_fim']
+        for campo in campos:
+            if campo not in data:
+                return jsonify({'message': f'O campo {campo} é obrigatório.'}), 400
+
+        payload = {
+            'cod_instrutor': cod_instrutor,
+            'data': data['data'],
+            'hora_inicio': data['hora_inicio'],
+            'hora_fim': data['hora_fim'],
+            'motivo': data.get('motivo', '')
+        }
+
+        response = supabase().table('bloqueios_horario').insert(payload).execute()
+
+        return jsonify({'message': 'Horário bloqueado', 'bloqueio': response.data}), 201
+
+    except Exception as err:
+        return jsonify({'message': str(err)}), 500
 
 # =============================================================
 # FUNÇÕES AUXILIARES
