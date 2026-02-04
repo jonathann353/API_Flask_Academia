@@ -693,10 +693,14 @@ def salvar_agendamento(cod_instrutor):
 @MY_APP.route('/agendamentos', methods=['GET'])
 def listar_agendamentos():
     try:
+        from datetime import datetime, timedelta
+
         data_inicio = request.args.get('start')
         data_fim = request.args.get('end')
 
-        query = supabase().table('agendamentos').select('*')
+        # Trazer agendamentos + nomes de aluno e instrutor usando join no Supabase
+        # Ajuste o nome das tabelas/campos se necessário
+        query = supabase().table('agendamentos').select('*, aluno:alunos(nome), instrutor:instrutores(nome)')
 
         if data_inicio and data_fim:
             query = query.gte('data', data_inicio[:10]).lte('data', data_fim[:10])
@@ -707,20 +711,23 @@ def listar_agendamentos():
         eventos = []
         for ag in dados:
             inicio = f"{ag['data']}T{ag['hora']}"
-            from datetime import datetime, timedelta
             inicio_dt = datetime.fromisoformat(inicio)
             fim_dt = inicio_dt + timedelta(minutes=ag['duracao_minutos'])
 
+            # Pega os nomes via join, ou fallback para ID se não existir
+            aluno_nome = ag.get('aluno', {}).get('nome', f"Aluno #{ag['cod_aluno']}")
+            instrutor_nome = ag.get('instrutor', {}).get('nome', f"Instrutor #{ag['cod_instrutor']}")
+
             eventos.append({
                 'id': ag['cod_agendamento'],
-                'title': f"Aluno {ag['aluno_nome']} | Instrutor {ag['instrutor_nome']}",
+                'title': f"{aluno_nome} | {instrutor_nome}",
                 'start': inicio_dt.isoformat(),
                 'end': fim_dt.isoformat(),
                 'extendedProps': {
                     'aluno': ag['cod_aluno'],
                     'instrutor': ag['cod_instrutor'],
-                    'aluno_nome': ag.get('aluno_nome', f"Aluno #{ag['aluno_nome']}"),
-                    'instrutor_nome': ag.get('instrutor_nome', f"Instrutor #{ag['instrutor_nome']}"),
+                    'aluno_nome': aluno_nome,
+                    'instrutor_nome': instrutor_nome,
                     'observacoes': ag.get('observacoes', '')
                 }
             })
@@ -730,6 +737,7 @@ def listar_agendamentos():
     except Exception as err:
         print("❌ Erro listar_agendamentos:", str(err))
         return jsonify({'message': str(err)}), 500
+
 
 
 @MY_APP.route('/agendamentos/<int:cod_agendamento>/editar', methods=['POST'])
