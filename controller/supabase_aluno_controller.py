@@ -698,9 +698,8 @@ def listar_agendamentos():
         data_inicio = request.args.get('start')
         data_fim = request.args.get('end')
 
-        # Trazer agendamentos + nomes de aluno e instrutor usando join no Supabase
-        # Ajuste o nome das tabelas/campos se necessário
-        query = supabase().table('agendamentos').select('*, aluno:alunos(nome), instrutor:instrutores(nome)')
+        # SELECT corrigido para usar nomes corretos das tabelas
+        query = supabase().table('agendamentos').select('*, aluno:aluno(nome), instrutor:instrutor(nome)')
 
         if data_inicio and data_fim:
             query = query.gte('data', data_inicio[:10]).lte('data', data_fim[:10])
@@ -714,7 +713,7 @@ def listar_agendamentos():
             inicio_dt = datetime.fromisoformat(inicio)
             fim_dt = inicio_dt + timedelta(minutes=ag['duracao_minutos'])
 
-            # Pega os nomes via join, ou fallback para ID se não existir
+            # Pega os nomes via join
             aluno_nome = ag.get('aluno', {}).get('nome', f"Aluno #{ag['cod_aluno']}")
             instrutor_nome = ag.get('instrutor', {}).get('nome', f"Instrutor #{ag['cod_instrutor']}")
 
@@ -737,8 +736,6 @@ def listar_agendamentos():
     except Exception as err:
         print("❌ Erro listar_agendamentos:", str(err))
         return jsonify({'message': str(err)}), 500
-
-
 
 @MY_APP.route('/agendamentos/<int:cod_agendamento>/editar', methods=['POST'])
 def editar_agendamento(cod_agendamento):
