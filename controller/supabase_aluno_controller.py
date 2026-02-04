@@ -713,12 +713,14 @@ def listar_agendamentos():
 
             eventos.append({
                 'id': ag['cod_agendamento'],
-                'title': f"Aluno #{ag['cod_aluno']} | Instrutor #{ag['cod_instrutor']}",
+                'title': f"Aluno {ag['cod_aluno']} | Instrutor {ag['cod_instrutor']}",
                 'start': inicio_dt.isoformat(),
                 'end': fim_dt.isoformat(),
                 'extendedProps': {
                     'aluno': ag['cod_aluno'],
                     'instrutor': ag['cod_instrutor'],
+                    'aluno_nome': ag.get('aluno_nome', f"Aluno #{ag['cod_aluno']}"),
+                    'instrutor_nome': ag.get('instrutor_nome', f"Instrutor #{ag['cod_instrutor']}"),
                     'observacoes': ag.get('observacoes', '')
                 }
             })
